@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Card,
   GamePhase,
   GameState,
   PlayerPhase,
-  Card,
 } from '../../types';
 import {
   createGame,
@@ -14,8 +14,8 @@ import {
   isSpecialCard,
 } from '../../engine';
 
-const CPU_TURN_DELAY = 700;
-const CPU_CONTINUE_DELAY = 500;
+const CPU_TURN_DELAY = 1200;
+const CPU_CONTINUE_DELAY = 800;
 const CPU_JUMPIN_MIN_DELAY = 300;
 const CPU_JUMPIN_MAX_DELAY = 800;
 const MAX_CPU_ITERATIONS = 50;
@@ -65,6 +65,22 @@ export function useGameController() {
     }
     return [];
   }, [humanPlayer]);
+
+  // --- Jump-in state ---
+  const canHumanJumpIn = useMemo(() => {
+    const w = gameState.jumpInWindow;
+    if (!w) return false;
+    if (w.playedByIndex === 0) return false;
+    const p = humanPlayer;
+    if (p.phase !== PlayerPhase.HandAndDraw && p.phase !== PlayerPhase.HandOnly) return false;
+    return p.hand.some((c) => c.rank === w.cardRank);
+  }, [gameState.jumpInWindow, humanPlayer]);
+
+  const jumpInCardIds = useMemo(() => {
+    const w = gameState.jumpInWindow;
+    if (!canHumanJumpIn || !w) return new Set<string>();
+    return new Set(humanPlayer.hand.filter((c) => c.rank === w.cardRank).map((c) => c.id));
+  }, [canHumanJumpIn, gameState.jumpInWindow, humanPlayer.hand]);
 
   // --- CPU turn orchestration ---
   const runCpuTurns = useCallback((state: GameState) => {
@@ -118,7 +134,30 @@ export function useGameController() {
       scheduleTimeout(step, delay);
     };
 
-    scheduleTimeout(step, CPU_TURN_DELAY);
+    // Check for CPU jump-ins on human's play before first regular CPU step
+    if (current.jumpInWindow && current.jumpInWindow.playedByIndex === 0) {
+      const jumpInDelay = CPU_JUMPIN_MIN_DELAY + Math.random() * (CPU_JUMPIN_MAX_DELAY - CPU_JUMPIN_MIN_DELAY);
+      scheduleTimeout(() => {
+        // Check if CPUs want to jump in on the human's play
+        for (let i = 1; i <= 3; i++) {
+          const jumpAction = decideCpuJumpIn(current, i);
+          if (jumpAction) {
+            const jumpResult = processAction(current, jumpAction);
+            current = jumpResult.state;
+            setGameState(current);
+            break;
+          }
+        }
+        // Continue with normal CPU turns
+        if (current.gamePhase === GamePhase.Finished || current.currentPlayerIndex === 0) {
+          setIsProcessing(false);
+          return;
+        }
+        scheduleTimeout(step, CPU_TURN_DELAY);
+      }, jumpInDelay);
+    } else {
+      scheduleTimeout(step, CPU_TURN_DELAY);
+    }
   }, [scheduleTimeout]);
 
   // Watch for CPU turns
@@ -194,6 +233,8 @@ export function useGameController() {
 
   const jumpIn = useCallback((cardIds: string[]) => {
     try {
+      clearTimeouts();
+      setIsProcessing(false);
       const result = processAction(gameState, {
         type: 'JUMP_IN',
         playerIndex: 0,
@@ -203,7 +244,7 @@ export function useGameController() {
     } catch (e) {
       console.warn('Invalid jump-in:', e);
     }
-  }, [gameState]);
+  }, [gameState, clearTimeouts]);
 
   const newGame = useCallback(() => {
     clearTimeouts();
@@ -218,6 +259,8 @@ export function useGameController() {
     playableZone,
     isHumanTurn,
     canPickUp,
+    canHumanJumpIn,
+    jumpInCardIds,
     newGame,
     chooseFaceUp,
     playCards,

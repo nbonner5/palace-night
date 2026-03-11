@@ -14,10 +14,14 @@ interface GameTableProps {
   canPlay: boolean;
   canPickUp: boolean;
   isHumanTurn: boolean;
+  canHumanJumpIn: boolean;
+  jumpInCardIds: Set<string>;
+  canJumpIn: boolean;
   onCardPress: (cardId: string) => void;
   onPlay: () => void;
   onPickUp: () => void;
   onFlipFaceDown: (slotIndex: number) => void;
+  onJumpIn: () => void;
 }
 
 export function GameTable({
@@ -28,10 +32,14 @@ export function GameTable({
   canPlay,
   canPickUp,
   isHumanTurn,
+  canHumanJumpIn,
+  jumpInCardIds,
+  canJumpIn,
   onCardPress,
   onPlay,
   onPickUp,
   onFlipFaceDown,
+  onJumpIn,
 }: GameTableProps) {
   return (
     <View style={styles.table}>
@@ -65,10 +73,14 @@ export function GameTable({
         canPlay={canPlay}
         canPickUp={canPickUp}
         isHumanTurn={isHumanTurn}
+        canHumanJumpIn={canHumanJumpIn}
+        jumpInCardIds={jumpInCardIds}
+        canJumpIn={canJumpIn}
         onCardPress={onCardPress}
         onPlay={onPlay}
         onPickUp={onPickUp}
         onFlipFaceDown={onFlipFaceDown}
+        onJumpIn={onJumpIn}
       />
     </View>
   );

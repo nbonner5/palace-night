@@ -15,7 +15,7 @@ export function PalaceGame() {
   const { selectedIds, toggle, clear } = useCardSelection();
   const [showBlowup, setShowBlowup] = useState(false);
 
-  const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp } = controller;
+  const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds } = controller;
 
   // Check if all selected cards are playable
   const canPlay = useMemo(() => {
@@ -25,6 +25,15 @@ export function PalaceGame() {
     }
     return true;
   }, [selectedIds, playableCardIds]);
+
+  // Check if selected cards are valid for jump-in
+  const canJumpIn = useMemo(() => {
+    if (selectedIds.size === 0) return false;
+    for (const id of selectedIds) {
+      if (!jumpInCardIds.has(id)) return false;
+    }
+    return true;
+  }, [selectedIds, jumpInCardIds]);
 
   const handleCardPress = useCallback((cardId: string) => {
     toggle(cardId, playableZone);
@@ -44,6 +53,12 @@ export function PalaceGame() {
   const handleFlipFaceDown = useCallback((slotIndex: number) => {
     controller.flipFaceDown(slotIndex);
   }, [controller]);
+
+  const handleJumpIn = useCallback(() => {
+    if (!canJumpIn) return;
+    controller.jumpIn([...selectedIds]);
+    clear();
+  }, [canJumpIn, controller, selectedIds, clear]);
 
   const handleSetupConfirm = useCallback((cardIds: string[]) => {
     controller.chooseFaceUp(cardIds);
@@ -73,10 +88,14 @@ export function PalaceGame() {
           canPlay={canPlay}
           canPickUp={canPickUp}
           isHumanTurn={isHumanTurn}
+          canHumanJumpIn={canHumanJumpIn}
+          jumpInCardIds={jumpInCardIds}
+          canJumpIn={canJumpIn}
           onCardPress={handleCardPress}
           onPlay={handlePlay}
           onPickUp={handlePickUp}
           onFlipFaceDown={handleFlipFaceDown}
+          onJumpIn={handleJumpIn}
         />
 
         {/* Setup overlay */}

@@ -23,6 +23,7 @@ const MAX_CPU_ITERATIONS = 50;
 export function useGameController() {
   const [gameState, setGameState] = useState<GameState>(() => createGame());
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Clean up timeouts on unmount
@@ -165,11 +166,12 @@ export function useGameController() {
     if (
       gameState.gamePhase === GamePhase.Playing &&
       gameState.currentPlayerIndex !== 0 &&
-      !isProcessing
+      !isProcessing &&
+      !isPaused
     ) {
       runCpuTurns(gameState);
     }
-  }, [gameState.currentPlayerIndex, gameState.gamePhase, isProcessing, runCpuTurns]);
+  }, [gameState.currentPlayerIndex, gameState.gamePhase, isProcessing, isPaused, runCpuTurns]);
 
   // --- Human actions ---
   const chooseFaceUp = useCallback((cardIds: string[]) => {
@@ -246,9 +248,20 @@ export function useGameController() {
     }
   }, [gameState, clearTimeouts]);
 
+  const pause = useCallback(() => {
+    clearTimeouts();
+    setIsProcessing(false);
+    setIsPaused(true);
+  }, [clearTimeouts]);
+
+  const resume = useCallback(() => {
+    setIsPaused(false);
+  }, []);
+
   const newGame = useCallback(() => {
     clearTimeouts();
     setIsProcessing(false);
+    setIsPaused(false);
     setGameState(createGame());
   }, [clearTimeouts]);
 
@@ -261,6 +274,9 @@ export function useGameController() {
     canPickUp,
     canHumanJumpIn,
     jumpInCardIds,
+    isPaused,
+    pause,
+    resume,
     newGame,
     chooseFaceUp,
     playCards,

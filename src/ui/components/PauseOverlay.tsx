@@ -2,28 +2,25 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 
-interface GameOverOverlayProps {
-  winnerId: number;
+interface PauseOverlayProps {
+  onResume: () => void;
   onNewGame: () => void;
   onExitToHome: () => void;
 }
 
-const PLAYER_NAMES = ['You', 'CPU 1', 'CPU 2', 'CPU 3'];
-
-export function GameOverOverlay({ winnerId, onNewGame, onExitToHome }: GameOverOverlayProps) {
-  const isHumanWin = winnerId === 0;
-
+export function PauseOverlay({ onResume, onNewGame, onExitToHome }: PauseOverlayProps) {
   return (
     <View style={styles.overlay}>
       <View style={styles.content}>
-        <Text style={[styles.title, isHumanWin ? styles.winTitle : styles.loseTitle]}>
-          {isHumanWin ? 'You Win!' : `${PLAYER_NAMES[winnerId]} Wins`}
-        </Text>
+        <Text style={styles.title}>Paused</Text>
+        <Pressable onPress={onResume} style={styles.button}>
+          <Text style={styles.buttonText}>Resume</Text>
+        </Pressable>
         <Pressable onPress={onNewGame} style={styles.button}>
           <Text style={styles.buttonText}>New Game</Text>
         </Pressable>
         <Pressable onPress={onExitToHome} style={styles.dangerButton}>
-          <Text style={styles.buttonText}>Home</Text>
+          <Text style={styles.buttonText}>Exit to Home</Text>
         </Pressable>
       </View>
     </View>
@@ -40,30 +37,30 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    gap: 24,
+    gap: 16,
     padding: 32,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
-  },
-  winTitle: {
-    color: colors.turnGold,
-  },
-  loseTitle: {
     color: colors.textPrimary,
+    marginBottom: 8,
   },
   button: {
     backgroundColor: colors.buttonPrimary,
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 10,
+    minWidth: 200,
+    alignItems: 'center',
   },
   dangerButton: {
     backgroundColor: colors.buttonDanger,
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 10,
+    minWidth: 200,
+    alignItems: 'center',
   },
   buttonText: {
     color: colors.textPrimary,

@@ -9,11 +9,14 @@ import { GameTable } from './components/GameTable';
 import { SetupOverlay } from './components/SetupOverlay';
 import { GameOverOverlay } from './components/GameOverOverlay';
 import { BlowupEffect } from './components/BlowupEffect';
+import { HomeScreen } from './components/HomeScreen';
+import { PauseOverlay } from './components/PauseOverlay';
 
 export function PalaceGame() {
   const controller = useGameController();
   const { selectedIds, toggle, clear } = useCardSelection();
   const [showBlowup, setShowBlowup] = useState(false);
+  const [appScreen, setAppScreen] = useState<'home' | 'game'>('home');
 
   const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds } = controller;
 
@@ -69,15 +72,43 @@ export function PalaceGame() {
     clear();
   }, [controller, clear]);
 
+  const handleStartGame = useCallback(() => {
+    controller.newGame();
+    clear();
+    setAppScreen('game');
+  }, [controller, clear]);
+
+  const handleExitToHome = useCallback(() => {
+    controller.newGame();
+    clear();
+    setAppScreen('home');
+  }, [controller, clear]);
+
+  const handlePause = useCallback(() => {
+    controller.pause();
+  }, [controller]);
+
+  const handleResume = useCallback(() => {
+    controller.resume();
+  }, [controller]);
+
+  if (appScreen === 'home') {
+    return <HomeScreen onNewGame={handleStartGame} />;
+  }
+
+  const isFinished = gameState.gamePhase === GamePhase.Finished;
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        {/* New Game button */}
-        <View style={styles.topBar}>
-          <Pressable onPress={handleNewGame} style={styles.newGameButton}>
-            <Text style={styles.newGameText}>New Game</Text>
-          </Pressable>
-        </View>
+        {/* Pause button (hidden when game is finished) */}
+        {!isFinished && (
+          <View style={styles.topBar}>
+            <Pressable onPress={handlePause} style={styles.pauseButton}>
+              <Text style={styles.pauseText}>| |</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Main game table */}
         <GameTable
@@ -107,10 +138,20 @@ export function PalaceGame() {
         )}
 
         {/* Game over overlay */}
-        {gameState.gamePhase === GamePhase.Finished && gameState.winnerId !== null && (
+        {isFinished && gameState.winnerId !== null && (
           <GameOverOverlay
             winnerId={gameState.winnerId}
             onNewGame={handleNewGame}
+            onExitToHome={handleExitToHome}
+          />
+        )}
+
+        {/* Pause overlay */}
+        {controller.isPaused && (
+          <PauseOverlay
+            onResume={handleResume}
+            onNewGame={handleNewGame}
+            onExitToHome={handleExitToHome}
           />
         )}
 
@@ -135,13 +176,13 @@ const styles = StyleSheet.create({
     right: 8,
     zIndex: 50,
   },
-  newGameButton: {
+  pauseButton: {
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 6,
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  newGameText: {
+  pauseText: {
     color: colors.textSecondary,
     fontSize: 11,
     fontWeight: '600',

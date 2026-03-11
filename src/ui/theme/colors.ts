@@ -12,6 +12,7 @@ export const colors = {
   turnGold: '#FFD700',
   buttonPrimary: '#2E7D32',
   buttonDanger: '#C62828',
+  buttonJumpIn: '#FF8F00',
   buttonDisabled: '#555555',
   textPrimary: '#FFFFFF',
   textSecondary: '#B0BEC5',

@@ -5,12 +5,29 @@ import { colors } from '../theme/colors';
 interface ActionBarProps {
   canPlay: boolean;
   canPickUp: boolean;
+  canJumpIn?: boolean;
   onPlay: () => void;
   onPickUp: () => void;
+  onJumpIn?: () => void;
   selectedCount: number;
 }
 
-export function ActionBar({ canPlay, canPickUp, onPlay, onPickUp, selectedCount }: ActionBarProps) {
+export function ActionBar({ canPlay, canPickUp, canJumpIn, onPlay, onPickUp, onJumpIn, selectedCount }: ActionBarProps) {
+  if (canJumpIn !== undefined && onJumpIn) {
+    return (
+      <View style={styles.container}>
+        <Pressable
+          onPress={canJumpIn ? onJumpIn : undefined}
+          style={[styles.button, styles.jumpInButton, !canJumpIn && styles.buttonDisabled]}
+        >
+          <Text style={[styles.buttonText, !canJumpIn && styles.buttonTextDisabled]}>
+            Jump In!
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Pressable
@@ -53,6 +70,9 @@ const styles = StyleSheet.create({
   },
   pickUpButton: {
     backgroundColor: colors.buttonDanger,
+  },
+  jumpInButton: {
+    backgroundColor: colors.buttonJumpIn,
   },
   buttonDisabled: {
     backgroundColor: colors.buttonDisabled,

@@ -14,10 +14,14 @@ interface HumanPlayerAreaProps {
   canPlay: boolean;
   canPickUp: boolean;
   isHumanTurn: boolean;
+  canHumanJumpIn: boolean;
+  jumpInCardIds: Set<string>;
+  canJumpIn: boolean;
   onCardPress: (cardId: string) => void;
   onPlay: () => void;
   onPickUp: () => void;
   onFlipFaceDown: (slotIndex: number) => void;
+  onJumpIn: () => void;
 }
 
 export function HumanPlayerArea({
@@ -27,14 +31,22 @@ export function HumanPlayerArea({
   canPlay,
   canPickUp,
   isHumanTurn,
+  canHumanJumpIn,
+  jumpInCardIds,
+  canJumpIn,
   onCardPress,
   onPlay,
   onPickUp,
   onFlipFaceDown,
+  onJumpIn,
 }: HumanPlayerAreaProps) {
   const showHand = player.phase === PlayerPhase.HandAndDraw || player.phase === PlayerPhase.HandOnly;
   const showFaceUp = player.phase === PlayerPhase.FaceUp;
   const showFaceDown = player.faceDown.length > 0;
+
+  // When jump-in is available (and it's not our turn), use jump-in cards as playable
+  const effectivePlayableIds = (!isHumanTurn && canHumanJumpIn) ? jumpInCardIds : playableIds;
+  const cardsEnabled = isHumanTurn || canHumanJumpIn;
 
   return (
     <View style={styles.container}>
@@ -59,9 +71,9 @@ export function HumanPlayerArea({
         <HumanFaceUp
           cards={player.faceUp}
           selectedIds={selectedIds}
-          playableIds={playableIds}
+          playableIds={effectivePlayableIds}
           onCardPress={onCardPress}
-          disabled={!isHumanTurn}
+          disabled={!cardsEnabled}
         />
       )}
 
@@ -70,21 +82,33 @@ export function HumanPlayerArea({
         <HumanHand
           cards={player.hand}
           selectedIds={selectedIds}
-          playableIds={playableIds}
+          playableIds={effectivePlayableIds}
           onCardPress={onCardPress}
-          disabled={!isHumanTurn}
+          disabled={!cardsEnabled}
         />
       )}
 
-      {/* Action buttons (not during FaceDown phase) */}
-      {player.phase !== PlayerPhase.FaceDown && (
+      {/* Action buttons */}
+      {canHumanJumpIn && !isHumanTurn ? (
         <ActionBar
-          canPlay={canPlay}
-          canPickUp={canPickUp}
+          canPlay={false}
+          canPickUp={false}
+          canJumpIn={canJumpIn}
           onPlay={onPlay}
           onPickUp={onPickUp}
+          onJumpIn={onJumpIn}
           selectedCount={selectedIds.size}
         />
+      ) : (
+        player.phase !== PlayerPhase.FaceDown && (
+          <ActionBar
+            canPlay={canPlay}
+            canPickUp={canPickUp}
+            onPlay={onPlay}
+            onPickUp={onPickUp}
+            selectedCount={selectedIds.size}
+          />
+        )
       )}
     </View>
   );

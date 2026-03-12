@@ -19,7 +19,11 @@ export function DrawPile({ count }: DrawPileProps) {
   return (
     <View style={styles.container}>
       <View style={styles.cardBack}>
-        <View style={styles.innerBorder} />
+        <View style={styles.cardBackOuter}>
+          <View style={styles.cardBackInner}>
+            <View style={styles.cardBackDiamond} />
+          </View>
+        </View>
       </View>
       <View style={styles.badge}>
         <Text style={styles.badgeText}>{count}</Text>
@@ -38,17 +42,38 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     backgroundColor: colors.cardBack,
     borderRadius: CARD_BORDER_RADIUS,
+    borderWidth: 1.5,
+    borderColor: colors.cardBackBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 1,
+  },
+  cardBackOuter: {
+    width: '85%',
+    height: '85%',
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: colors.cardBackBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  innerBorder: {
-    width: '70%',
-    height: '70%',
+  cardBackInner: {
+    width: '85%',
+    height: '85%',
     borderRadius: 2,
     borderWidth: 1,
-    borderColor: colors.cardBackBorder,
+    borderColor: 'rgba(212, 168, 75, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardBackDiamond: {
+    width: 12,
+    height: 12,
+    backgroundColor: colors.cardBackBorder,
+    transform: [{ rotate: '45deg' }],
   },
   empty: {
     width: CARD_WIDTH,

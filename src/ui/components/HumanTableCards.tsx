@@ -28,16 +28,18 @@ export function HumanTableCards({ faceDown, faceUp, playerPhase, isHumanTurn, on
 
         return (
           <View key={index} style={styles.stack}>
-            {/* Face-down card on bottom, offset down */}
-            <View style={styles.faceDownLayer}>
-              <View style={[styles.slot]}>
-                <View style={styles.cardBackOuter}>
-                  <View style={styles.cardBackInner}>
-                    <View style={styles.cardBackDiamond} />
+            {/* Face-down card on bottom, offset down (hidden during face-down phase) */}
+            {!isFaceDownPhase && (
+              <View style={styles.faceDownLayer}>
+                <View style={[styles.slot]}>
+                  <View style={styles.cardBackOuter}>
+                    <View style={styles.cardBackInner}>
+                      <View style={styles.cardBackDiamond} />
+                    </View>
                   </View>
                 </View>
               </View>
-            </View>
+            )}
 
             {/* Face-up card on top (or tappable slot during face-down phase) */}
             <View style={styles.faceUpLayer}>
@@ -76,7 +78,7 @@ const styles = StyleSheet.create({
   },
   stack: {
     width: CARD_WIDTH,
-    height: CARD_HEIGHT + FACE_DOWN_OFFSET,
+    height: CARD_HEIGHT + FACE_DOWN_OFFSET + 4,
   },
   faceDownLayer: {
     position: 'absolute',
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
   },
   faceUpLayer: {
     position: 'absolute',
-    top: 0,
+    top: -4,
     left: 0,
   },
   slot: {

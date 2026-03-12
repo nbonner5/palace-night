@@ -22,7 +22,7 @@ describe('drawCards', () => {
     });
 
     const result = drawCards(state, 0);
-    expect(result.state.players[0].hand).toHaveLength(3);
+    expect(result.state.players[0]!.hand).toHaveLength(3);
     expect(result.state.drawPile).toHaveLength(1);
     expect(result.events).toHaveLength(1);
     expect(result.events[0]).toMatchObject({ type: 'CARD_DRAWN', count: 2 });
@@ -36,7 +36,7 @@ describe('drawCards', () => {
     });
 
     const result = drawCards(state, 0);
-    expect(result.state.players[0].hand).toHaveLength(1);
+    expect(result.state.players[0]!.hand).toHaveLength(1);
     expect(result.state.drawPile).toHaveLength(0);
   });
 
@@ -53,7 +53,7 @@ describe('drawCards', () => {
     });
 
     const result = drawCards(state, 0);
-    expect(result.state.players[0].hand).toHaveLength(3);
+    expect(result.state.players[0]!.hand).toHaveLength(3);
     expect(result.state.drawPile).toHaveLength(1);
     expect(result.events).toHaveLength(0);
   });
@@ -66,7 +66,7 @@ describe('drawCards', () => {
     });
 
     const result = drawCards(state, 0);
-    expect(result.state.players[0].hand).toHaveLength(0);
+    expect(result.state.players[0]!.hand).toHaveLength(0);
     expect(result.events).toHaveLength(0);
   });
 });
@@ -85,10 +85,10 @@ describe('checkPhaseTransition', () => {
     });
 
     const result = checkPhaseTransition(state, 0);
-    expect(result.state.players[0].phase).toBe(PlayerPhase.HandOnly);
-    expect(result.state.players[1].phase).toBe(PlayerPhase.HandOnly);
-    expect(result.state.players[2].phase).toBe(PlayerPhase.HandOnly);
-    expect(result.state.players[3].phase).toBe(PlayerPhase.FaceDown);
+    expect(result.state.players[0]!.phase).toBe(PlayerPhase.HandOnly);
+    expect(result.state.players[1]!.phase).toBe(PlayerPhase.HandOnly);
+    expect(result.state.players[2]!.phase).toBe(PlayerPhase.HandOnly);
+    expect(result.state.players[3]!.phase).toBe(PlayerPhase.FaceDown);
   });
 
   it('picks up faceUp into hand when hand is empty', () => {
@@ -105,9 +105,9 @@ describe('checkPhaseTransition', () => {
     });
 
     const result = checkPhaseTransition(state, 0);
-    expect(result.state.players[0].hand).toHaveLength(3);
-    expect(result.state.players[0].faceUp).toHaveLength(0);
-    expect(result.state.players[0].phase).toBe(PlayerPhase.HandOnly);
+    expect(result.state.players[0]!.hand).toHaveLength(3);
+    expect(result.state.players[0]!.faceUp).toHaveLength(0);
+    expect(result.state.players[0]!.phase).toBe(PlayerPhase.HandOnly);
   });
 
   it('transitions to FaceDown when hand and faceUp are empty', () => {
@@ -119,7 +119,7 @@ describe('checkPhaseTransition', () => {
     });
 
     const result = checkPhaseTransition(state, 0);
-    expect(result.state.players[0].phase).toBe(PlayerPhase.FaceDown);
+    expect(result.state.players[0]!.phase).toBe(PlayerPhase.FaceDown);
   });
 });
 

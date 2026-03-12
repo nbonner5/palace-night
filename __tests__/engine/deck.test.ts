@@ -72,7 +72,7 @@ describe('shuffleDeck', () => {
 
 describe('dealCards', () => {
   const deck = createDeck();
-  const result = dealCards(deck);
+  const result = dealCards(deck, 4);
 
   it('gives 3 face-down per player', () => {
     for (const fd of result.faceDowns) {

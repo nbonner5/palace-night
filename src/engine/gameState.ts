@@ -1,4 +1,5 @@
 import {
+  GameConfig,
   GamePhase,
   GameState,
   PlayerPhase,
@@ -6,6 +7,7 @@ import {
   Rank,
   RNG,
   ChooseFaceUpAction,
+  DEFAULT_CONFIG,
 } from '../types';
 import { createDeck, shuffleDeck, dealCards } from './deck';
 import { isSpecialCard } from './rules';
@@ -21,17 +23,19 @@ function makeSeededRng(seed: number): RNG {
   };
 }
 
-export function createGame(rng?: RNG): GameState {
-  const deck = createDeck();
+export function createGame(config: GameConfig = DEFAULT_CONFIG, rng?: RNG): GameState {
+  const playerCount = config.cpuCount + 1;
+  const deck = createDeck(config);
   const shuffled = shuffleDeck(deck, rng);
-  const { hands, faceDowns, drawPile } = dealCards(shuffled);
+  const { hands, faceDowns, drawPile } = dealCards(shuffled, playerCount);
 
-  const players: [PlayerState, PlayerState, PlayerState, PlayerState] = [
-    { id: 0, hand: hands[0], faceUp: [], faceDown: faceDowns[0], phase: PlayerPhase.HandAndDraw },
-    { id: 1, hand: hands[1], faceUp: [], faceDown: faceDowns[1], phase: PlayerPhase.HandAndDraw },
-    { id: 2, hand: hands[2], faceUp: [], faceDown: faceDowns[2], phase: PlayerPhase.HandAndDraw },
-    { id: 3, hand: hands[3], faceUp: [], faceDown: faceDowns[3], phase: PlayerPhase.HandAndDraw },
-  ];
+  const players: PlayerState[] = Array.from({ length: playerCount }, (_, i) => ({
+    id: i,
+    hand: hands[i]!,
+    faceUp: [],
+    faceDown: faceDowns[i]!,
+    phase: PlayerPhase.HandAndDraw,
+  }));
 
   return {
     gamePhase: GamePhase.Setup,
@@ -39,19 +43,20 @@ export function createGame(rng?: RNG): GameState {
     pile: [],
     burnPile: [],
     players,
+    config,
     currentPlayerIndex: 0,
     mustPlayAgain: false,
     jumpInWindow: null,
     winnerId: null,
     turnNumber: 0,
-    setupChoicesRemaining: 4,
+    setupChoicesRemaining: playerCount,
     actionLog: [],
   };
 }
 
-export function createGameWithSeed(seed: number): GameState {
+export function createGameWithSeed(seed: number, config: GameConfig = DEFAULT_CONFIG): GameState {
   const rng = makeSeededRng(seed);
-  return createGame(rng);
+  return createGame(config, rng);
 }
 
 export function autoChooseFaceUp(

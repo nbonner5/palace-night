@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GamePhase } from '../types';
+import { GameConfig, GamePhase, DEFAULT_CONFIG } from '../types';
 import { colors } from './theme/colors';
 import { useGameController } from './hooks/useGameController';
 import { useCardSelection } from './hooks/useCardSelection';
@@ -13,7 +13,8 @@ import { HomeScreen } from './components/HomeScreen';
 import { PauseOverlay } from './components/PauseOverlay';
 
 export function PalaceGame() {
-  const controller = useGameController();
+  const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
+  const controller = useGameController(config);
   const { selectedIds, toggle, clear } = useCardSelection();
   const [showBlowup, setShowBlowup] = useState(false);
   const [appScreen, setAppScreen] = useState<'home' | 'game'>('home');
@@ -79,9 +80,10 @@ export function PalaceGame() {
 
   const handleDoubleTapCard = useCallback((cardId: string) => {
     if (!canHumanJumpIn) return;
-    const tappedCard = gameState.players[0].hand.find(c => c.id === cardId);
+    const humanPlayer = gameState.players[0]!;
+    const tappedCard = humanPlayer.hand.find(c => c.id === cardId);
     if (!tappedCard) return;
-    const matchingIds = gameState.players[0].hand
+    const matchingIds = humanPlayer.hand
       .filter(c => c.rank === tappedCard.rank && jumpInCardIds.has(c.id))
       .map(c => c.id);
     if (matchingIds.length === 0) return;
@@ -120,7 +122,7 @@ export function PalaceGame() {
   }, [controller]);
 
   if (appScreen === 'home') {
-    return <HomeScreen onNewGame={handleStartGame} />;
+    return <HomeScreen config={config} onConfigChange={setConfig} onNewGame={handleStartGame} />;
   }
 
   const isFinished = gameState.gamePhase === GamePhase.Finished;
@@ -160,7 +162,7 @@ export function PalaceGame() {
         {/* Setup overlay */}
         {gameState.gamePhase === GamePhase.Setup && gameState.currentPlayerIndex === 0 && (
           <SetupOverlay
-            hand={gameState.players[0].hand}
+            hand={gameState.players[0]!.hand}
             onConfirm={handleSetupConfirm}
           />
         )}

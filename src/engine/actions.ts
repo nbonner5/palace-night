@@ -21,7 +21,7 @@ function updatePlayer(
 ): GameState {
   const newPlayers = state.players.map((p, i) =>
     i === playerIndex ? { ...p, ...updates } : p
-  ) as unknown as [PlayerState, PlayerState, PlayerState, PlayerState];
+  );
   return { ...state, players: newPlayers };
 }
 
@@ -76,7 +76,7 @@ function handleChooseFaceUp(state: GameState, action: Extract<Action, { type: 'C
     // Advance to next player for setup
     newState = {
       ...newState,
-      currentPlayerIndex: (action.playerIndex + 1) % 4,
+      currentPlayerIndex: (action.playerIndex + 1) % state.players.length,
     };
   }
 

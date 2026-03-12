@@ -1,4 +1,4 @@
-export { createDeck, shuffleDeck, dealCards } from './deck';
+export { createDeck, shuffleDeck, dealCards, validateConfig } from './deck';
 export { canPlayOn, isSpecialCard, getPlayableZone, getPlayableCards, validatePlay, consecutiveSameRankOnTop, findLowestCard } from './rules';
 export { checkBlowup, executeBlowup } from './blowup';
 export { canJumpIn, getJumpInWindow } from './jumpIn';

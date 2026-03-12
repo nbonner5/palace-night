@@ -10,7 +10,9 @@ interface TurnIndicatorProps {
   isProcessing: boolean;
 }
 
-const PLAYER_NAMES = ['You', 'CPU 1', 'CPU 2', 'CPU 3'];
+function getPlayerName(index: number): string {
+  return index === 0 ? 'You' : `CPU ${index}`;
+}
 
 export function TurnIndicator({ currentPlayerIndex, gamePhase, mustPlayAgain, isProcessing }: TurnIndicatorProps) {
   if (gamePhase === GamePhase.Finished) {
@@ -23,7 +25,7 @@ export function TurnIndicator({ currentPlayerIndex, gamePhase, mustPlayAgain, is
   } else if (currentPlayerIndex === 0) {
     message = mustPlayAgain ? 'Play again!' : 'Your turn';
   } else {
-    message = `${PLAYER_NAMES[currentPlayerIndex]} is thinking...`;
+    message = `${getPlayerName(currentPlayerIndex)} is thinking...`;
   }
 
   return (

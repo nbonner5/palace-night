@@ -12,12 +12,11 @@ interface CpuPlayerAreaProps {
   isCurrentTurn: boolean;
 }
 
-const PLAYER_NAMES = ['You', 'CPU 1', 'CPU 2', 'CPU 3'];
-
 export function CpuPlayerArea({ player, playerIndex, isCurrentTurn }: CpuPlayerAreaProps) {
+  const name = `CPU ${playerIndex}`;
   return (
     <View style={[styles.container, isCurrentTurn && styles.activeBorder]}>
-      <PlayerLabel name={PLAYER_NAMES[playerIndex] ?? `CPU ${playerIndex}`} isCurrentTurn={isCurrentTurn} />
+      <PlayerLabel name={name} isCurrentTurn={isCurrentTurn} />
 
       {/* Hand count as card backs */}
       {player.hand.length > 0 && (

@@ -1,9 +1,11 @@
 import {
   Card,
+  GameConfig,
   GamePhase,
   GameState,
   PlayerPhase,
   PlayerState,
+  DEFAULT_CONFIG,
 } from '../../src/types';
 
 export function buildPlayer(
@@ -21,35 +23,36 @@ export function buildPlayer(
 }
 
 interface PlayingStateConfig {
-  hands?: [Card[], Card[], Card[], Card[]];
-  faceUps?: [Card[], Card[], Card[], Card[]];
-  faceDowns?: [Card[], Card[], Card[], Card[]];
-  phases?: [PlayerPhase, PlayerPhase, PlayerPhase, PlayerPhase];
+  hands?: Card[][];
+  faceUps?: Card[][];
+  faceDowns?: Card[][];
+  phases?: PlayerPhase[];
   pile?: Card[];
   drawPile?: Card[];
   burnPile?: Card[];
   currentPlayerIndex?: number;
   mustPlayAgain?: boolean;
   turnNumber?: number;
+  playerCount?: number;
+  config?: GameConfig;
 }
 
 export function buildPlayingState(config: PlayingStateConfig = {}): GameState {
-  const hands = config.hands ?? [[], [], [], []];
-  const faceUps = config.faceUps ?? [[], [], [], []];
-  const faceDowns = config.faceDowns ?? [[], [], [], []];
-  const phases = config.phases ?? [
-    PlayerPhase.HandAndDraw,
-    PlayerPhase.HandAndDraw,
-    PlayerPhase.HandAndDraw,
-    PlayerPhase.HandAndDraw,
-  ];
+  const count = config.playerCount ?? config.hands?.length ?? 4;
+  const hands = config.hands ?? Array.from({ length: count }, () => []);
+  const faceUps = config.faceUps ?? Array.from({ length: count }, () => []);
+  const faceDowns = config.faceDowns ?? Array.from({ length: count }, () => []);
+  const defaultPhase = PlayerPhase.HandAndDraw;
+  const phases = config.phases ?? Array.from({ length: count }, () => defaultPhase);
 
-  const players: [PlayerState, PlayerState, PlayerState, PlayerState] = [
-    buildPlayer(0, { hand: hands[0], faceUp: faceUps[0], faceDown: faceDowns[0], phase: phases[0] }),
-    buildPlayer(1, { hand: hands[1], faceUp: faceUps[1], faceDown: faceDowns[1], phase: phases[1] }),
-    buildPlayer(2, { hand: hands[2], faceUp: faceUps[2], faceDown: faceDowns[2], phase: phases[2] }),
-    buildPlayer(3, { hand: hands[3], faceUp: faceUps[3], faceDown: faceDowns[3], phase: phases[3] }),
-  ];
+  const players: PlayerState[] = Array.from({ length: count }, (_, i) =>
+    buildPlayer(i, {
+      hand: hands[i] ?? [],
+      faceUp: faceUps[i] ?? [],
+      faceDown: faceDowns[i] ?? [],
+      phase: phases[i] ?? defaultPhase,
+    })
+  );
 
   return {
     gamePhase: GamePhase.Playing,
@@ -57,6 +60,7 @@ export function buildPlayingState(config: PlayingStateConfig = {}): GameState {
     pile: config.pile ?? [],
     burnPile: config.burnPile ?? [],
     players,
+    config: config.config ?? DEFAULT_CONFIG,
     currentPlayerIndex: config.currentPlayerIndex ?? 0,
     mustPlayAgain: config.mustPlayAgain ?? false,
     jumpInWindow: null,
@@ -79,6 +83,7 @@ export function buildState(overrides: Partial<GameState> = {}): GameState {
       buildPlayer(2),
       buildPlayer(3),
     ],
+    config: DEFAULT_CONFIG,
     currentPlayerIndex: 0,
     mustPlayAgain: false,
     jumpInWindow: null,

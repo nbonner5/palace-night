@@ -34,8 +34,8 @@ describe('CHOOSE_FACE_UP', () => {
       cardIds: ['h1', 'h2', 'h3'],
     });
 
-    expect(result.state.players[0].hand).toHaveLength(3);
-    expect(result.state.players[0].faceUp).toHaveLength(3);
+    expect(result.state.players[0]!.hand).toHaveLength(3);
+    expect(result.state.players[0]!.faceUp).toHaveLength(3);
     expect(result.state.setupChoicesRemaining).toBe(3);
     expect(result.state.currentPlayerIndex).toBe(1);
   });
@@ -97,7 +97,7 @@ describe('PLAY_CARDS', () => {
 
     expect(result.state.pile).toHaveLength(1);
     expect(result.state.pile[0]!.id).toBe('c1');
-    expect(result.state.players[0].hand).toHaveLength(1);
+    expect(result.state.players[0]!.hand).toHaveLength(1);
   });
 
   it('plays multiple cards of same rank', () => {
@@ -116,7 +116,7 @@ describe('PLAY_CARDS', () => {
     });
 
     expect(result.state.pile).toHaveLength(2);
-    expect(result.state.players[0].hand).toHaveLength(0);
+    expect(result.state.players[0]!.hand).toHaveLength(0);
   });
 
   it('playing 2 sets mustPlayAgain', () => {
@@ -224,7 +224,7 @@ describe('PLAY_CARDS', () => {
     });
 
     // Had 3, played 1 → 2 in hand, draws 1 → 3
-    expect(result.state.players[0].hand).toHaveLength(3);
+    expect(result.state.players[0]!.hand).toHaveLength(3);
   });
 
   it('advances turn for normal play', () => {
@@ -279,7 +279,7 @@ describe('PLAY_CARDS', () => {
       cardIds: ['c1'],
     });
 
-    expect(result.state.players[0].faceUp).toHaveLength(0);
+    expect(result.state.players[0]!.faceUp).toHaveLength(0);
     expect(result.state.pile).toHaveLength(1);
   });
 });
@@ -324,8 +324,8 @@ describe('FLIP_FACE_DOWN', () => {
     });
 
     // Player picks up pile + flipped card → hand
-    expect(result.state.players[0].hand).toHaveLength(2); // pile card + flipped card
-    expect(result.state.players[0].phase).toBe(PlayerPhase.HandOnly);
+    expect(result.state.players[0]!.hand).toHaveLength(2); // pile card + flipped card
+    expect(result.state.players[0]!.phase).toBe(PlayerPhase.HandOnly);
     expect(result.state.pile).toHaveLength(0);
   });
 
@@ -414,7 +414,7 @@ describe('PICK_UP_PILE', () => {
       playerIndex: 0,
     });
 
-    expect(result.state.players[0].hand).toHaveLength(3); // 1 existing + 2 pile
+    expect(result.state.players[0]!.hand).toHaveLength(3); // 1 existing + 2 pile
     expect(result.state.pile).toHaveLength(0);
     expect(result.state.currentPlayerIndex).toBe(1);
   });
@@ -435,8 +435,8 @@ describe('PICK_UP_PILE', () => {
       playerIndex: 0,
     });
 
-    expect(result.state.players[0].phase).toBe(PlayerPhase.HandOnly);
-    expect(result.state.players[0].hand).toHaveLength(1);
+    expect(result.state.players[0]!.phase).toBe(PlayerPhase.HandOnly);
+    expect(result.state.players[0]!.hand).toHaveLength(1);
   });
 
   it('throws during mustPlayAgain', () => {

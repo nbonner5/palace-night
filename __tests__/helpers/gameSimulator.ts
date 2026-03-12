@@ -1,4 +1,4 @@
-import { GameState, GamePhase, Card } from '../../src/types';
+import { GameState, GamePhase, GameConfig, Card, DEFAULT_CONFIG } from '../../src/types';
 import { createGameWithSeed } from '../../src/engine/gameState';
 import { processAction } from '../../src/engine/actions';
 import { decideCpuAction } from '../../src/engine/cpu';
@@ -14,10 +14,12 @@ export function assertInvariants(state: GameState): void {
     allCards.push(...player.hand, ...player.faceUp, ...player.faceDown);
   }
 
-  // Total cards = 108
-  if (allCards.length !== 108) {
+  // Total cards should match config
+  const config = state.config;
+  const expectedCards = config.deckCount * 52 + (config.includeJokers ? config.deckCount * 2 : 0);
+  if (allCards.length !== expectedCards) {
     throw new Error(
-      `Card count invariant violated: expected 108, got ${allCards.length}`
+      `Card count invariant violated: expected ${expectedCards}, got ${allCards.length}`
     );
   }
 
@@ -31,7 +33,7 @@ export function assertInvariants(state: GameState): void {
   }
 
   // Current player index is valid
-  if (state.currentPlayerIndex < 0 || state.currentPlayerIndex > 3) {
+  if (state.currentPlayerIndex < 0 || state.currentPlayerIndex >= state.players.length) {
     throw new Error(
       `Invalid currentPlayerIndex: ${state.currentPlayerIndex}`
     );
@@ -55,9 +57,10 @@ export function assertInvariants(state: GameState): void {
 
 export function simulateFullGame(
   seed: number,
+  config: GameConfig = DEFAULT_CONFIG,
   maxActions: number = 1000
 ): { state: GameState; actionCount: number } {
-  let state = createGameWithSeed(seed);
+  let state = createGameWithSeed(seed, config);
 
   // Auto-choose face-up for all players during setup
   let actionCount = 0;

@@ -43,33 +43,54 @@ export function GameTable({
   onFlipFaceDown,
   onJumpIn,
 }: GameTableProps) {
+  const cpuPlayers = game.players.slice(1);
+  const cpuCount = cpuPlayers.length;
+
+  // For 5+ CPUs, split into 2 rows
+  const topRowCount = cpuCount > 3 ? Math.ceil(cpuCount / 2) : cpuCount;
+  const topRow = cpuPlayers.slice(0, topRowCount);
+  const bottomRow = cpuPlayers.slice(topRowCount);
+
   return (
     <View style={styles.table}>
-      {/* CPU players row */}
+      {/* CPU players top row */}
       <View style={styles.cpuRow}>
-        <CpuPlayerArea
-          player={game.players[1]}
-          playerIndex={1}
-          isCurrentTurn={game.currentPlayerIndex === 1}
-        />
-        <CpuPlayerArea
-          player={game.players[2]}
-          playerIndex={2}
-          isCurrentTurn={game.currentPlayerIndex === 2}
-        />
-        <CpuPlayerArea
-          player={game.players[3]}
-          playerIndex={3}
-          isCurrentTurn={game.currentPlayerIndex === 3}
-        />
+        {topRow.map((player, i) => {
+          const playerIndex = i + 1;
+          return (
+            <CpuPlayerArea
+              key={playerIndex}
+              player={player}
+              playerIndex={playerIndex}
+              isCurrentTurn={game.currentPlayerIndex === playerIndex}
+            />
+          );
+        })}
       </View>
+
+      {/* CPU players bottom row (when 5+ CPUs) */}
+      {bottomRow.length > 0 && (
+        <View style={styles.cpuRow}>
+          {bottomRow.map((player, i) => {
+            const playerIndex = topRowCount + i + 1;
+            return (
+              <CpuPlayerArea
+                key={playerIndex}
+                player={player}
+                playerIndex={playerIndex}
+                isCurrentTurn={game.currentPlayerIndex === playerIndex}
+              />
+            );
+          })}
+        </View>
+      )}
 
       {/* Center area */}
       <CenterArea game={game} isProcessing={isProcessing} />
 
       {/* Human player */}
       <HumanPlayerArea
-        player={game.players[0]}
+        player={game.players[0]!}
         selectedIds={selectedIds}
         playableIds={playableIds}
         canPlay={canPlay}

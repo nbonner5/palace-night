@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Card,
+  GameConfig,
   GamePhase,
   GameState,
   PlayerPhase,
+  DEFAULT_CONFIG,
 } from '../../types';
 import {
   createGame,
@@ -20,11 +22,13 @@ const CPU_JUMPIN_MIN_DELAY = 300;
 const CPU_JUMPIN_MAX_DELAY = 800;
 const MAX_CPU_ITERATIONS = 50;
 
-export function useGameController() {
-  const [gameState, setGameState] = useState<GameState>(() => createGame());
+export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
+  const [gameState, setGameState] = useState<GameState>(() => createGame(config));
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const configRef = useRef(config);
+  configRef.current = config;
 
   // Clean up timeouts on unmount
   useEffect(() => {
@@ -44,7 +48,7 @@ export function useGameController() {
     return t;
   }, []);
 
-  const humanPlayer = gameState.players[0];
+  const humanPlayer = gameState.players[0]!;
   const isHumanTurn = gameState.currentPlayerIndex === 0 && !isProcessing && gameState.gamePhase === GamePhase.Playing;
 
   const playableCards = useMemo(() => {
@@ -72,9 +76,8 @@ export function useGameController() {
     const w = gameState.jumpInWindow;
     if (!w) return false;
     if (w.playedByIndex === 0) return false;
-    const p = humanPlayer;
-    if (p.phase !== PlayerPhase.HandAndDraw && p.phase !== PlayerPhase.HandOnly) return false;
-    return p.hand.some((c) => c.rank === w.cardRank);
+    if (humanPlayer.phase !== PlayerPhase.HandAndDraw && humanPlayer.phase !== PlayerPhase.HandOnly) return false;
+    return humanPlayer.hand.some((c) => c.rank === w.cardRank);
   }, [gameState.jumpInWindow, humanPlayer]);
 
   const jumpInCardIds = useMemo(() => {
@@ -113,7 +116,7 @@ export function useGameController() {
       const playedEvent = result.events.find((e) => e.type === 'CARDS_PLAYED');
       if (playedEvent && playedEvent.type === 'CARDS_PLAYED' && !isSpecialCard(playedEvent.cards[0]!)) {
         // Check other CPUs for jump-in
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i < current.players.length; i++) {
           if (i === cpuIndex) continue;
           const jumpAction = decideCpuJumpIn(current, i);
           if (jumpAction) {
@@ -140,7 +143,7 @@ export function useGameController() {
       const jumpInDelay = CPU_JUMPIN_MIN_DELAY + Math.random() * (CPU_JUMPIN_MAX_DELAY - CPU_JUMPIN_MIN_DELAY);
       scheduleTimeout(() => {
         // Check if CPUs want to jump in on the human's play
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i < current.players.length; i++) {
           const jumpAction = decideCpuJumpIn(current, i);
           if (jumpAction) {
             const jumpResult = processAction(current, jumpAction);
@@ -262,7 +265,7 @@ export function useGameController() {
     clearTimeouts();
     setIsProcessing(false);
     setIsPaused(false);
-    setGameState(createGame());
+    setGameState(createGame(configRef.current));
   }, [clearTimeouts]);
 
   return {

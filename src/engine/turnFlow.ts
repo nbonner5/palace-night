@@ -36,7 +36,7 @@ export function drawCards(state: GameState, playerIndex: number): FlowResult {
 
   const newPlayers = state.players.map((p, i) =>
     i === playerIndex ? newPlayer : p
-  ) as unknown as [PlayerState, PlayerState, PlayerState, PlayerState];
+  );
 
   events.push({
     type: 'CARD_DRAWN',
@@ -70,7 +70,7 @@ export function checkPhaseTransition(
         return { ...p, phase: PlayerPhase.HandOnly };
       }
       return p;
-    }) as unknown as [PlayerState, PlayerState, PlayerState, PlayerState];
+    });
     currentState = { ...currentState, players: newPlayers };
   }
 
@@ -100,7 +100,7 @@ export function checkPhaseTransition(
 
     const newPlayers = currentState.players.map((p, i) =>
       i === playerIndex ? newPlayer : p
-    ) as unknown as [PlayerState, PlayerState, PlayerState, PlayerState];
+    );
     currentState = { ...currentState, players: newPlayers };
   }
 
@@ -126,7 +126,7 @@ export function checkPhaseTransition(
 
     const newPlayers = currentState.players.map((p, i) =>
       i === playerIndex ? newPlayer : p
-    ) as unknown as [PlayerState, PlayerState, PlayerState, PlayerState];
+    );
     currentState = { ...currentState, players: newPlayers };
   }
 
@@ -141,16 +141,16 @@ export function advanceTurn(state: GameState): FlowResult {
   }
 
   // Next player clockwise, skip winners
-  let next = (state.currentPlayerIndex + 1) % 4;
+  let next = (state.currentPlayerIndex + 1) % state.players.length;
   let attempts = 0;
-  while (attempts < 4) {
+  while (attempts < state.players.length) {
     const player = state.players[next]!;
     const isEmpty =
       player.hand.length === 0 &&
       player.faceUp.length === 0 &&
       player.faceDown.length === 0;
     if (!isEmpty) break;
-    next = (next + 1) % 4;
+    next = (next + 1) % state.players.length;
     attempts++;
   }
 

@@ -77,6 +77,18 @@ export function PalaceGame() {
     clear();
   }, [canJumpIn, controller, selectedIds, clear]);
 
+  const handleDoubleTapCard = useCallback((cardId: string) => {
+    if (!canHumanJumpIn) return;
+    const tappedCard = gameState.players[0].hand.find(c => c.id === cardId);
+    if (!tappedCard) return;
+    const matchingIds = gameState.players[0].hand
+      .filter(c => c.rank === tappedCard.rank && jumpInCardIds.has(c.id))
+      .map(c => c.id);
+    if (matchingIds.length === 0) return;
+    controller.jumpIn(matchingIds);
+    clear();
+  }, [canHumanJumpIn, gameState.players, jumpInCardIds, controller, clear]);
+
   const handleSetupConfirm = useCallback((cardIds: string[]) => {
     controller.chooseFaceUp(cardIds);
   }, [controller]);
@@ -138,6 +150,7 @@ export function PalaceGame() {
           jumpInCardIds={jumpInCardIds}
           canJumpIn={canJumpIn}
           onCardPress={handleCardPress}
+          onDoubleTapCard={handleDoubleTapCard}
           onPlay={handlePlay}
           onPickUp={handlePickUp}
           onFlipFaceDown={handleFlipFaceDown}
@@ -196,14 +209,18 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   pauseButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     backgroundColor: 'rgba(0,0,0,0.3)',
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   pauseText: {
     color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

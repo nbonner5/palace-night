@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Card, Rank, Suit } from '../../types';
@@ -35,16 +35,29 @@ interface CardViewProps {
   selected?: boolean;
   playable?: boolean;
   onPress?: () => void;
+  onDoubleTap?: () => void;
   size?: 'small' | 'normal';
   disabled?: boolean;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function CardView({ card, faceDown, selected = false, playable = true, onPress, size = 'normal', disabled = false }: CardViewProps) {
+export function CardView({ card, faceDown, selected = false, playable = true, onPress, onDoubleTap, size = 'normal', disabled = false }: CardViewProps) {
   const isSmall = size === 'small';
   const w = isSmall ? CARD_WIDTH_SMALL : CARD_WIDTH;
   const h = isSmall ? CARD_HEIGHT_SMALL : CARD_HEIGHT;
+  const lastTapRef = useRef(0);
+
+  const handlePress = () => {
+    const now = Date.now();
+    if (onDoubleTap && now - lastTapRef.current < 300) {
+      lastTapRef.current = 0;
+      onDoubleTap();
+    } else {
+      lastTapRef.current = now;
+      onPress?.();
+    }
+  };
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: withSpring(selected ? -16 : 0, { damping: 15, stiffness: 200 }) }],
@@ -53,7 +66,11 @@ export function CardView({ card, faceDown, selected = false, playable = true, on
   if (faceDown || !card) {
     return (
       <View style={[styles.cardBack, { width: w, height: h }]}>
-        <View style={styles.cardBackInner} />
+        <View style={styles.cardBackOuter}>
+          <View style={styles.cardBackInner}>
+            <View style={styles.cardBackDiamond} />
+          </View>
+        </View>
       </View>
     );
   }
@@ -66,7 +83,7 @@ export function CardView({ card, faceDown, selected = false, playable = true, on
 
   return (
     <AnimatedPressable
-      onPress={!disabled && playable ? onPress : undefined}
+      onPress={!disabled && playable ? handlePress : undefined}
       style={[
         styles.card,
         { width: w, height: h },
@@ -117,7 +134,7 @@ const styles = StyleSheet.create({
   cardBack: {
     backgroundColor: colors.cardBack,
     borderRadius: CARD_BORDER_RADIUS,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.cardBackBorder,
     justifyContent: 'center',
     alignItems: 'center',
@@ -127,12 +144,29 @@ const styles = StyleSheet.create({
     shadowRadius: 1,
     elevation: 1,
   },
-  cardBackInner: {
-    width: '70%',
-    height: '70%',
-    borderRadius: 2,
+  cardBackOuter: {
+    width: '85%',
+    height: '85%',
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: colors.cardBackBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardBackInner: {
+    width: '85%',
+    height: '85%',
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 168, 75, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardBackDiamond: {
+    width: 12,
+    height: 12,
+    backgroundColor: colors.cardBackBorder,
+    transform: [{ rotate: '45deg' }],
   },
   topLeft: {
     position: 'absolute',

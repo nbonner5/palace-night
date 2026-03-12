@@ -18,6 +18,7 @@ interface GameTableProps {
   jumpInCardIds: Set<string>;
   canJumpIn: boolean;
   onCardPress: (cardId: string) => void;
+  onDoubleTapCard?: (cardId: string) => void;
   onPlay: () => void;
   onPickUp: () => void;
   onFlipFaceDown: (slotIndex: number) => void;
@@ -36,6 +37,7 @@ export function GameTable({
   jumpInCardIds,
   canJumpIn,
   onCardPress,
+  onDoubleTapCard,
   onPlay,
   onPickUp,
   onFlipFaceDown,
@@ -77,6 +79,7 @@ export function GameTable({
         jumpInCardIds={jumpInCardIds}
         canJumpIn={canJumpIn}
         onCardPress={onCardPress}
+        onDoubleTapCard={onDoubleTapCard}
         onPlay={onPlay}
         onPickUp={onPickUp}
         onFlipFaceDown={onFlipFaceDown}

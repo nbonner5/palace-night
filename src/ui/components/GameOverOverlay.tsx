@@ -1,24 +1,32 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
+import { Leaderboard } from './Leaderboard';
 
 interface GameOverOverlayProps {
   winnerId: number;
+  leaderboard: Record<number, number>;
+  playerCount: number;
   onNewGame: () => void;
   onExitToHome: () => void;
 }
 
-const PLAYER_NAMES = ['You', 'CPU 1', 'CPU 2', 'CPU 3'];
+function getPlayerName(index: number): string {
+  return index === 0 ? 'You' : `CPU ${index}`;
+}
 
-export function GameOverOverlay({ winnerId, onNewGame, onExitToHome }: GameOverOverlayProps) {
+export function GameOverOverlay({ winnerId, leaderboard, playerCount, onNewGame, onExitToHome }: GameOverOverlayProps) {
   const isHumanWin = winnerId === 0;
 
   return (
     <View style={styles.overlay}>
       <View style={styles.content}>
         <Text style={[styles.title, isHumanWin ? styles.winTitle : styles.loseTitle]}>
-          {isHumanWin ? 'You Win!' : `${PLAYER_NAMES[winnerId]} Wins`}
+          {isHumanWin ? 'You Win!' : `${getPlayerName(winnerId)} Wins`}
         </Text>
+
+        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} />
+
         <Pressable onPress={onNewGame} style={styles.button}>
           <Text style={styles.buttonText}>New Game</Text>
         </Pressable>

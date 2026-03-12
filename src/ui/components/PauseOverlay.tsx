@@ -1,18 +1,22 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
+import { Leaderboard } from './Leaderboard';
 
 interface PauseOverlayProps {
+  leaderboard: Record<number, number>;
+  playerCount: number;
   onResume: () => void;
   onNewGame: () => void;
   onExitToHome: () => void;
 }
 
-export function PauseOverlay({ onResume, onNewGame, onExitToHome }: PauseOverlayProps) {
+export function PauseOverlay({ leaderboard, playerCount, onResume, onNewGame, onExitToHome }: PauseOverlayProps) {
   return (
     <View style={styles.overlay}>
       <View style={styles.content}>
         <Text style={styles.title}>Paused</Text>
+        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} />
         <Pressable onPress={onResume} style={styles.button}>
           <Text style={styles.buttonText}>Resume</Text>
         </Pressable>

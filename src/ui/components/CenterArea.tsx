@@ -1,14 +1,13 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { GameState } from '../../types';
-import { PlayPile } from './PlayPile';
-import { DrawPile } from './DrawPile';
-import { BurnCounter } from './BurnCounter';
-import { TurnIndicator } from './TurnIndicator';
+import React from 'react'
+import { StyleSheet, View } from 'react-native'
+import { GameState } from '../../types'
+import { PlayPile } from './PlayPile'
+import { DrawPile } from './DrawPile'
+import { TurnIndicator } from './TurnIndicator'
 
 interface CenterAreaProps {
-  game: GameState;
-  isProcessing: boolean;
+  game: GameState
+  isProcessing: boolean
 }
 
 export function CenterArea({ game, isProcessing }: CenterAreaProps) {
@@ -23,10 +22,9 @@ export function CenterArea({ game, isProcessing }: CenterAreaProps) {
       <View style={styles.piles}>
         <DrawPile count={game.drawPile.length} />
         <PlayPile pile={game.pile} />
-        <BurnCounter count={game.burnPile.length} />
       </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -41,4 +39,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 24,
   },
-});
+})

@@ -1,10 +1,10 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme/colors';
-import { CARD_WIDTH, CARD_HEIGHT, CARD_BORDER_RADIUS } from '../theme/layout';
+import React from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+import { colors } from '../theme/colors'
+import { CARD_WIDTH, CARD_HEIGHT, CARD_BORDER_RADIUS } from '../theme/layout'
 
 interface DrawPileProps {
-  count: number;
+  count: number
 }
 
 export function DrawPile({ count }: DrawPileProps) {
@@ -13,13 +13,11 @@ export function DrawPile({ count }: DrawPileProps) {
       <View style={styles.empty}>
         <Text style={styles.emptyText}>Draw</Text>
       </View>
-    );
+    )
   }
 
   return (
     <View style={styles.container}>
-      {count > 2 && <View style={[styles.cardBack, { top: -2, left: -2 }]} />}
-      {count > 1 && <View style={[styles.cardBack, { top: -1, left: -1 }]} />}
       <View style={styles.cardBack}>
         <View style={styles.innerBorder} />
       </View>
@@ -27,7 +25,7 @@ export function DrawPile({ count }: DrawPileProps) {
         <Text style={styles.badgeText}>{count}</Text>
       </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -82,4 +80,4 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-});
+})

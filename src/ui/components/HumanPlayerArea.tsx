@@ -3,8 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PlayerState, PlayerPhase } from '../../types';
 import { colors } from '../theme/colors';
 import { HumanHand } from './HumanHand';
-import { HumanFaceUp } from './HumanFaceUp';
-import { HumanFaceDown } from './HumanFaceDown';
+import { HumanTableCards } from './HumanTableCards';
 import { ActionBar } from './ActionBar';
 
 interface HumanPlayerAreaProps {
@@ -18,6 +17,7 @@ interface HumanPlayerAreaProps {
   jumpInCardIds: Set<string>;
   canJumpIn: boolean;
   onCardPress: (cardId: string) => void;
+  onDoubleTapCard?: (cardId: string) => void;
   onPlay: () => void;
   onPickUp: () => void;
   onFlipFaceDown: (slotIndex: number) => void;
@@ -35,14 +35,13 @@ export function HumanPlayerArea({
   jumpInCardIds,
   canJumpIn,
   onCardPress,
+  onDoubleTapCard,
   onPlay,
   onPickUp,
   onFlipFaceDown,
   onJumpIn,
 }: HumanPlayerAreaProps) {
   const showHand = player.phase === PlayerPhase.HandAndDraw || player.phase === PlayerPhase.HandOnly;
-  const showFaceUp = player.phase === PlayerPhase.FaceUp;
-  const showFaceDown = player.faceDown.length > 0;
 
   // When jump-in is available (and it's not our turn), use jump-in cards as playable
   const effectivePlayableIds = (!isHumanTurn && canHumanJumpIn) ? jumpInCardIds : playableIds;
@@ -58,24 +57,14 @@ export function HumanPlayerArea({
         <Text style={styles.phaseLabel}>Playing face-up cards</Text>
       )}
 
-      {/* Face-down slots (always visible while they exist) */}
-      <HumanFaceDown
-        cards={player.faceDown}
+      {/* Stacked face-down / face-up table cards */}
+      <HumanTableCards
+        faceDown={player.faceDown}
+        faceUp={player.faceUp}
         playerPhase={player.phase}
+        isHumanTurn={isHumanTurn}
         onSlotPress={onFlipFaceDown}
-        disabled={!isHumanTurn}
       />
-
-      {/* Face-up cards (only when in FaceUp phase) */}
-      {showFaceUp && (
-        <HumanFaceUp
-          cards={player.faceUp}
-          selectedIds={selectedIds}
-          playableIds={effectivePlayableIds}
-          onCardPress={onCardPress}
-          disabled={!cardsEnabled}
-        />
-      )}
 
       {/* Hand */}
       {showHand && player.hand.length > 0 && (
@@ -84,6 +73,7 @@ export function HumanPlayerArea({
           selectedIds={selectedIds}
           playableIds={effectivePlayableIds}
           onCardPress={onCardPress}
+          onDoubleTapCard={onDoubleTapCard}
           disabled={!cardsEnabled}
         />
       )}

@@ -9,10 +9,11 @@ interface HumanHandProps {
   selectedIds: Set<string>;
   playableIds: Set<string>;
   onCardPress: (cardId: string) => void;
+  onDoubleTapCard?: (cardId: string) => void;
   disabled: boolean;
 }
 
-export function HumanHand({ cards, selectedIds, playableIds, onCardPress, disabled }: HumanHandProps) {
+export function HumanHand({ cards, selectedIds, playableIds, onCardPress, onDoubleTapCard, disabled }: HumanHandProps) {
   const { width } = useWindowDimensions();
 
   // Compute overlap so cards fit on screen
@@ -42,6 +43,7 @@ export function HumanHand({ cards, selectedIds, playableIds, onCardPress, disabl
             selected={selectedIds.has(card.id)}
             playable={playableIds.has(card.id)}
             onPress={() => onCardPress(card.id)}
+            onDoubleTap={onDoubleTapCard ? () => onDoubleTapCard(card.id) : undefined}
             disabled={disabled}
           />
         </View>

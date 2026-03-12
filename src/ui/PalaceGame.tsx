@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GamePhase } from '../types';
@@ -17,8 +17,22 @@ export function PalaceGame() {
   const { selectedIds, toggle, clear } = useCardSelection();
   const [showBlowup, setShowBlowup] = useState(false);
   const [appScreen, setAppScreen] = useState<'home' | 'game'>('home');
+  const [leaderboard, setLeaderboard] = useState<Record<number, number>>({});
+  const prevWinnerRef = useRef<number | null>(null);
 
   const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds } = controller;
+
+  // Record wins when winnerId transitions from null to a number
+  useEffect(() => {
+    const winnerId = gameState.winnerId;
+    if (prevWinnerRef.current === null && winnerId !== null) {
+      setLeaderboard(prev => ({
+        ...prev,
+        [winnerId]: (prev[winnerId] ?? 0) + 1,
+      }));
+    }
+    prevWinnerRef.current = winnerId;
+  }, [gameState.winnerId]);
 
   // Check if all selected cards are playable
   const canPlay = useMemo(() => {
@@ -81,6 +95,7 @@ export function PalaceGame() {
   const handleExitToHome = useCallback(() => {
     controller.newGame();
     clear();
+    setLeaderboard({});
     setAppScreen('home');
   }, [controller, clear]);
 
@@ -141,6 +156,8 @@ export function PalaceGame() {
         {isFinished && gameState.winnerId !== null && (
           <GameOverOverlay
             winnerId={gameState.winnerId}
+            leaderboard={leaderboard}
+            playerCount={gameState.players.length}
             onNewGame={handleNewGame}
             onExitToHome={handleExitToHome}
           />
@@ -149,6 +166,8 @@ export function PalaceGame() {
         {/* Pause overlay */}
         {controller.isPaused && (
           <PauseOverlay
+            leaderboard={leaderboard}
+            playerCount={gameState.players.length}
             onResume={handleResume}
             onNewGame={handleNewGame}
             onExitToHome={handleExitToHome}

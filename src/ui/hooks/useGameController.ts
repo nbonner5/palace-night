@@ -14,6 +14,7 @@ import {
   decideCpuAction,
   decideCpuJumpIn,
   isSpecialCard,
+  canPlayOn,
 } from '../../engine';
 
 const CPU_TURN_DELAY = 1200;
@@ -26,6 +27,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
   const [gameState, setGameState] = useState<GameState>(() => createGame(config));
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [revealedFaceDown, setRevealedFaceDown] = useState<{ slotIndex: number; card: Card; playable: boolean } | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const configRef = useRef(config);
   configRef.current = config;
@@ -224,17 +226,27 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
   }, [gameState]);
 
   const flipFaceDown = useCallback((slotIndex: number) => {
+    const card = gameState.players[0]?.faceDown[slotIndex];
+    if (!card) return;
+    const pileTop = gameState.pile[gameState.pile.length - 1];
+    const playable = canPlayOn(card, pileTop);
+    setRevealedFaceDown({ slotIndex, card, playable });
+  }, [gameState]);
+
+  const confirmFaceDown = useCallback(() => {
+    if (!revealedFaceDown) return;
     try {
       const result = processAction(gameState, {
         type: 'FLIP_FACE_DOWN',
         playerIndex: 0,
-        slotIndex,
+        slotIndex: revealedFaceDown.slotIndex,
       });
       setGameState(result.state);
     } catch (e) {
       console.warn('Invalid flip:', e);
     }
-  }, [gameState]);
+    setRevealedFaceDown(null);
+  }, [gameState, revealedFaceDown]);
 
   const jumpIn = useCallback((cardIds: string[]) => {
     try {
@@ -255,6 +267,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     clearTimeouts();
     setIsProcessing(false);
     setIsPaused(true);
+    setRevealedFaceDown(null);
   }, [clearTimeouts]);
 
   const resume = useCallback(() => {
@@ -265,6 +278,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     clearTimeouts();
     setIsProcessing(false);
     setIsPaused(false);
+    setRevealedFaceDown(null);
     setGameState(createGame(configRef.current));
   }, [clearTimeouts]);
 
@@ -278,6 +292,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     canHumanJumpIn,
     jumpInCardIds,
     isPaused,
+    revealedFaceDown,
     pause,
     resume,
     newGame,
@@ -285,6 +300,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     playCards,
     pickUpPile,
     flipFaceDown,
+    confirmFaceDown,
     jumpIn,
   };
 }

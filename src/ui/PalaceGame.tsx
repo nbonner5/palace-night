@@ -21,7 +21,7 @@ export function PalaceGame() {
   const [leaderboard, setLeaderboard] = useState<Record<number, number>>({});
   const prevWinnerRef = useRef<number | null>(null);
 
-  const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds } = controller;
+  const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds, revealedFaceDown } = controller;
 
   // Record wins when winnerId transitions from null to a number
   useEffect(() => {
@@ -70,6 +70,10 @@ export function PalaceGame() {
 
   const handleFlipFaceDown = useCallback((slotIndex: number) => {
     controller.flipFaceDown(slotIndex);
+  }, [controller]);
+
+  const handleConfirmFaceDown = useCallback(() => {
+    controller.confirmFaceDown();
   }, [controller]);
 
   const handleJumpIn = useCallback(() => {
@@ -151,11 +155,13 @@ export function PalaceGame() {
           canHumanJumpIn={canHumanJumpIn}
           jumpInCardIds={jumpInCardIds}
           canJumpIn={canJumpIn}
+          revealedFaceDown={revealedFaceDown}
           onCardPress={handleCardPress}
           onDoubleTapCard={handleDoubleTapCard}
           onPlay={handlePlay}
           onPickUp={handlePickUp}
           onFlipFaceDown={handleFlipFaceDown}
+          onConfirmFaceDown={handleConfirmFaceDown}
           onJumpIn={handleJumpIn}
         />
 

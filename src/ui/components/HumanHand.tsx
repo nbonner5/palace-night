@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 4,
     alignItems: 'flex-end',
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   cardSlot: {
     // Each card needs to be above the previous for tap handling

@@ -95,8 +95,6 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
   const [hasChosenFaceUp, setHasChosenFaceUp] = useState(false);
   const stateVersionRef = useRef(0);
   const filteredStateRef = useRef<FilteredGameState | null>(null);
-  const faceDownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Listen for state updates from server
   useEffect(() => {
     const unsubs = [
@@ -115,28 +113,16 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
           filteredStateRef.current = msg.state;
           stateVersionRef.current = msg.state.stateVersion;
           setIsProcessing(false);
-
-          // Handle face-down flip events
-          const flipEvent = msg.events.find((e) => e.type === 'FACE_DOWN_FLIPPED');
-          if (flipEvent && flipEvent.type === 'FACE_DOWN_FLIPPED') {
-            // Show reveal if it's our action (server seat matches our seat)
-            if (
-              msg.state.yourSeatIndex !== undefined &&
-              flipEvent.playerIndex === msg.state.yourSeatIndex
-            ) {
-              setRevealedFaceDown({
-                slotIndex: 0, // Approximate — server doesn't send slot index in event
-                card: flipEvent.card,
-                playable: flipEvent.playable,
-              });
-              // Auto-dismiss after 1.5s — server already processed the flip
-              if (faceDownTimerRef.current) clearTimeout(faceDownTimerRef.current);
-              faceDownTimerRef.current = setTimeout(() => {
-                setRevealedFaceDown(null);
-                faceDownTimerRef.current = null;
-              }, 1500);
-            }
-          }
+        }
+      }),
+      onMessage('FACE_DOWN_REVEALED', (msg) => {
+        if (msg.type === 'FACE_DOWN_REVEALED') {
+          setRevealedFaceDown({
+            slotIndex: msg.slotIndex,
+            card: msg.card,
+            playable: msg.playable,
+          });
+          setIsProcessing(false);
         }
       }),
       onMessage('GAME_OVER', (msg) => {
@@ -186,7 +172,6 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
     ];
     return () => {
       unsubs.forEach((u) => u());
-      if (faceDownTimerRef.current) clearTimeout(faceDownTimerRef.current);
     };
   }, [onMessage]);
 
@@ -324,21 +309,28 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
     (slotIndex: number) => {
       setIsProcessing(true);
       send({
-        type: 'GAME_ACTION',
-        action: {
-          type: 'FLIP_FACE_DOWN',
-          playerIndex: toServerIndex(),
-          slotIndex,
-        },
+        type: 'REVEAL_FACE_DOWN',
+        slotIndex,
         stateVersion: stateVersionRef.current,
       });
     },
-    [send, toServerIndex]
+    [send]
   );
 
   const confirmFaceDown = useCallback(() => {
+    if (!revealedFaceDown) return;
+    setIsProcessing(true);
+    send({
+      type: 'GAME_ACTION',
+      action: {
+        type: 'FLIP_FACE_DOWN',
+        playerIndex: toServerIndex(),
+        slotIndex: revealedFaceDown.slotIndex,
+      },
+      stateVersion: stateVersionRef.current,
+    });
     setRevealedFaceDown(null);
-  }, []);
+  }, [revealedFaceDown, send, toServerIndex]);
 
   const jumpIn = useCallback(
     (cardIds: string[]) => {

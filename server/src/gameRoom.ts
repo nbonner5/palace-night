@@ -8,7 +8,8 @@ import {
 import { createGame } from '../../src/engine/gameState';
 import { processAction } from '../../src/engine/actions';
 import { decideCpuAction } from '../../src/engine/cpu';
-import { isSpecialCard } from '../../src/engine/rules';
+import { isSpecialCard, canPlayOn } from '../../src/engine/rules';
+import { Card, PlayerPhase } from '../../src/types';
 import { FilteredGameState, ServerMessage } from '../../src/types/multiplayer';
 import { filterStateForPlayer } from './stateFilter';
 import { validatePlayerAction } from './validation';
@@ -35,6 +36,7 @@ export class GameRoom {
   private leaderboard: Record<number, number>;
   private pendingSetupChoices: Map<number, readonly string[]> = new Map();
   private humanSeatsNeedingSetup: Set<number> = new Set();
+  private pendingReveal: { seatIndex: number; slotIndex: number } | null = null;
 
   constructor(lobby: Lobby, broadcast: BroadcastFn, initialLeaderboard?: Record<number, number>) {
     this.lobbyId = lobby.id;
@@ -157,12 +159,53 @@ export class GameRoom {
 
     try {
       const result = processAction(this.state, action);
+      if (action.type === 'FLIP_FACE_DOWN') {
+        this.pendingReveal = null;
+      }
       this.applyResult(result.state, result.events);
       return { success: true };
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error';
       return { success: false, error: msg };
     }
+  }
+
+  handleRevealFaceDown(
+    playerId: string,
+    slotIndex: number,
+    clientVersion: number
+  ): { success: boolean; error?: string; card?: Card; playable?: boolean; slotIndex?: number } {
+    const seatIndex = this.getSeatIndex(playerId);
+    if (seatIndex === -1) return { success: false, error: 'Not in this game' };
+
+    if (clientVersion !== this.stateVersion) {
+      return { success: false, error: 'Stale state' };
+    }
+
+    if (this.state.currentPlayerIndex !== seatIndex) {
+      return { success: false, error: 'Not your turn' };
+    }
+
+    const player = this.state.players[seatIndex];
+    if (!player || player.phase !== PlayerPhase.FaceDown) {
+      return { success: false, error: 'Not in face-down phase' };
+    }
+
+    if (slotIndex < 0 || slotIndex >= player.faceDown.length) {
+      return { success: false, error: 'Invalid slot index' };
+    }
+
+    if (this.pendingReveal) {
+      return { success: false, error: 'Already revealing a card' };
+    }
+
+    const card = player.faceDown[slotIndex]!;
+    const pileTop = this.state.pile.length > 0 ? this.state.pile[this.state.pile.length - 1] : undefined;
+    const playable = canPlayOn(card, pileTop);
+
+    this.pendingReveal = { seatIndex, slotIndex };
+
+    return { success: true, card, playable, slotIndex };
   }
 
   private handleSetupAction(seatIndex: number, cardIds: readonly string[]): { success: boolean; error?: string } {
@@ -239,6 +282,11 @@ export class GameRoom {
     if (seatIndex !== -1) {
       this.seats[seatIndex]!.connected = false;
 
+      // Clear pending reveal if it belongs to this player
+      if (this.pendingReveal && this.pendingReveal.seatIndex === seatIndex) {
+        this.pendingReveal = null;
+      }
+
       // If it was their turn, restart timer (CPU will take over)
       if (this.state.currentPlayerIndex === seatIndex) {
         this.scheduleCpuIfNeeded();
@@ -295,13 +343,18 @@ export class GameRoom {
       if (winnerId !== null) {
         this.leaderboard[winnerId] = (this.leaderboard[winnerId] ?? 0) + 1;
         const winnerName = this.seats[winnerId]?.displayName ?? 'Unknown';
-        this.broadcastAll({
-          type: 'GAME_OVER',
-          winnerId,
-          winnerName,
-          finalState: this.getFilteredState(0), // Generic view
-          leaderboard: { ...this.leaderboard },
-        });
+        for (let i = 0; i < this.seats.length; i++) {
+          const seat = this.seats[i];
+          if (seat?.playerId && seat.connected) {
+            this.broadcast(i, {
+              type: 'GAME_OVER',
+              winnerId,
+              winnerName,
+              finalState: this.getFilteredState(i),
+              leaderboard: { ...this.leaderboard },
+            });
+          }
+        }
       }
       return;
     }
@@ -329,8 +382,26 @@ export class GameRoom {
   }
 
   private onTurnTimerExpiry(): void {
-    // Auto-play for the current player using CPU logic
     const currentIndex = this.state.currentPlayerIndex;
+
+    // If there's a pending reveal for the current player, auto-confirm it
+    if (this.pendingReveal && this.pendingReveal.seatIndex === currentIndex) {
+      const slotIndex = this.pendingReveal.slotIndex;
+      this.pendingReveal = null;
+      try {
+        const result = processAction(this.state, {
+          type: 'FLIP_FACE_DOWN',
+          playerIndex: currentIndex,
+          slotIndex,
+        });
+        this.applyResult(result.state, result.events);
+        return;
+      } catch {
+        // Fall through to normal CPU logic
+      }
+    }
+
+    // Auto-play for the current player using CPU logic
     const action = decideCpuAction(this.state, currentIndex);
     try {
       const result = processAction(this.state, action);

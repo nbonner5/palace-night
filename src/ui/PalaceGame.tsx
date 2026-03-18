@@ -83,17 +83,33 @@ export function PalaceGame() {
   }, [canJumpIn, controller, selectedIds, clear]);
 
   const handleDoubleTapCard = useCallback((cardId: string) => {
-    if (!canHumanJumpIn) return;
     const humanPlayer = gameState.players[0]!;
     const tappedCard = humanPlayer.hand.find(c => c.id === cardId);
     if (!tappedCard) return;
-    const matchingIds = humanPlayer.hand
-      .filter(c => c.rank === tappedCard.rank && jumpInCardIds.has(c.id))
-      .map(c => c.id);
-    if (matchingIds.length === 0) return;
-    controller.jumpIn(matchingIds);
-    clear();
-  }, [canHumanJumpIn, gameState.players, jumpInCardIds, controller, clear]);
+
+    // Jump-in: select all matching jump-in cards and jump in
+    if (canHumanJumpIn) {
+      const matchingIds = humanPlayer.hand
+        .filter(c => c.rank === tappedCard.rank && jumpInCardIds.has(c.id))
+        .map(c => c.id);
+      if (matchingIds.length > 0) {
+        controller.jumpIn(matchingIds);
+        clear();
+        return;
+      }
+    }
+
+    // Normal play: select all matching playable cards and play them
+    if (isHumanTurn && playableCardIds.has(cardId)) {
+      const matchingIds = humanPlayer.hand
+        .filter(c => c.rank === tappedCard.rank && playableCardIds.has(c.id))
+        .map(c => c.id);
+      if (matchingIds.length > 0) {
+        controller.playCards(matchingIds);
+        clear();
+      }
+    }
+  }, [canHumanJumpIn, isHumanTurn, gameState.players, jumpInCardIds, playableCardIds, controller, clear]);
 
   const handleSetupConfirm = useCallback((cardIds: string[]) => {
     controller.chooseFaceUp(cardIds);

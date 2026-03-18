@@ -52,7 +52,7 @@ export function HumanTableCards({ faceDown, faceUp, playerPhase, isHumanTurn, re
                   playable={false}
                 />
               ) : revealedFaceDown?.slotIndex === index ? (
-                <CardView card={revealedFaceDown.card} faceDown={false} disabled={true} playable={false} />
+                <CardView card={revealedFaceDown.card} faceDown={false} disabled={true} playable={revealedFaceDown.playable} />
               ) : canTap ? (
                 <Pressable
                   onPress={() => onSlotPress(index)}

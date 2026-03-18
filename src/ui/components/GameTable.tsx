@@ -18,6 +18,7 @@ interface GameTableProps {
   jumpInCardIds: Set<string>;
   canJumpIn: boolean;
   revealedFaceDown: { slotIndex: number; card: Card; playable: boolean } | null;
+  seatNames?: string[];
   onCardPress: (cardId: string) => void;
   onDoubleTapCard?: (cardId: string) => void;
   onPlay: () => void;
@@ -39,6 +40,7 @@ export function GameTable({
   jumpInCardIds,
   canJumpIn,
   revealedFaceDown,
+  seatNames,
   onCardPress,
   onDoubleTapCard,
   onPlay,
@@ -67,6 +69,7 @@ export function GameTable({
               player={player}
               playerIndex={playerIndex}
               isCurrentTurn={game.currentPlayerIndex === playerIndex}
+              name={seatNames?.[playerIndex]}
             />
           );
         })}
@@ -83,6 +86,7 @@ export function GameTable({
                 player={player}
                 playerIndex={playerIndex}
                 isCurrentTurn={game.currentPlayerIndex === playerIndex}
+                name={seatNames?.[playerIndex]}
               />
             );
           })}
@@ -90,7 +94,7 @@ export function GameTable({
       )}
 
       {/* Center area */}
-      <CenterArea game={game} isProcessing={isProcessing} />
+      <CenterArea game={game} isProcessing={isProcessing} seatNames={seatNames} />
 
       {/* Human player */}
       <HumanPlayerArea

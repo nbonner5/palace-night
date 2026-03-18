@@ -8,9 +8,10 @@ import { TurnIndicator } from './TurnIndicator'
 interface CenterAreaProps {
   game: GameState
   isProcessing: boolean
+  seatNames?: string[]
 }
 
-export function CenterArea({ game, isProcessing }: CenterAreaProps) {
+export function CenterArea({ game, isProcessing, seatNames }: CenterAreaProps) {
   return (
     <View style={styles.container}>
       <TurnIndicator
@@ -18,6 +19,7 @@ export function CenterArea({ game, isProcessing }: CenterAreaProps) {
         gamePhase={game.gamePhase}
         mustPlayAgain={game.mustPlayAgain}
         isProcessing={isProcessing}
+        seatNames={seatNames}
       />
       <View style={styles.piles}>
         <DrawPile count={game.drawPile.length} />

@@ -7,6 +7,7 @@ interface GameOverOverlayProps {
   winnerId: number;
   leaderboard: Record<number, number>;
   playerCount: number;
+  seatNames?: string[];
   onNewGame: () => void;
   onExitToHome: () => void;
 }
@@ -15,17 +16,18 @@ function getPlayerName(index: number): string {
   return index === 0 ? 'You' : `CPU ${index}`;
 }
 
-export function GameOverOverlay({ winnerId, leaderboard, playerCount, onNewGame, onExitToHome }: GameOverOverlayProps) {
+export function GameOverOverlay({ winnerId, leaderboard, playerCount, seatNames, onNewGame, onExitToHome }: GameOverOverlayProps) {
   const isHumanWin = winnerId === 0;
+  const winnerName = seatNames?.[winnerId] ?? getPlayerName(winnerId);
 
   return (
     <View style={styles.overlay}>
       <View style={styles.content}>
         <Text style={[styles.title, isHumanWin ? styles.winTitle : styles.loseTitle]}>
-          {isHumanWin ? 'You Win!' : `${getPlayerName(winnerId)} Wins`}
+          {isHumanWin ? 'You Win!' : `${winnerName} Wins`}
         </Text>
 
-        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} />
+        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} seatNames={seatNames} />
 
         <Pressable onPress={onNewGame} style={styles.button}>
           <Text style={styles.buttonText}>New Game</Text>

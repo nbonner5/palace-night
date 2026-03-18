@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
     borderColor: '#DDD',
     justifyContent: 'center',
     alignItems: 'center',
+    userSelect: 'none' as const,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,

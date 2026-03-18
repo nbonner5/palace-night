@@ -2,24 +2,42 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GameConfig, GamePhase, DEFAULT_CONFIG } from '../types';
+import { LobbyConfig } from '../types/multiplayer';
 import { colors } from './theme/colors';
 import { useGameController } from './hooks/useGameController';
 import { useCardSelection } from './hooks/useCardSelection';
+import { useSocket } from './hooks/useSocket';
+import { useLobby } from './hooks/useLobby';
+import { useDisplayName } from './hooks/useDisplayName';
+import { useMultiplayerController } from './hooks/useMultiplayerController';
+import { TurnTimer as TurnTimerBar } from './components/TurnTimer';
 import { GameTable } from './components/GameTable';
 import { SetupOverlay } from './components/SetupOverlay';
 import { GameOverOverlay } from './components/GameOverOverlay';
 import { BlowupEffect } from './components/BlowupEffect';
 import { HomeScreen } from './components/HomeScreen';
 import { PauseOverlay } from './components/PauseOverlay';
+import { OnlineMenu } from './components/OnlineMenu';
+import { WaitingRoom } from './components/WaitingRoom';
+import { PostGameOverlay } from './components/PostGameOverlay';
+
+type AppScreen = 'home' | 'game' | 'online-menu' | 'waiting-room' | 'online-game';
 
 export function PalaceGame() {
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
   const controller = useGameController(config);
   const { selectedIds, toggle, clear } = useCardSelection();
   const [showBlowup, setShowBlowup] = useState(false);
-  const [appScreen, setAppScreen] = useState<'home' | 'game'>('home');
+  const [appScreen, setAppScreen] = useState<AppScreen>('home');
   const [leaderboard, setLeaderboard] = useState<Record<number, number>>({});
   const prevWinnerRef = useRef<number | null>(null);
+
+  // Online hooks
+  const socket = useSocket();
+  const lobby = useLobby({ send: socket.send, onMessage: socket.onMessage });
+  const { displayName, setDisplayName, isLoaded: nameLoaded } = useDisplayName();
+  const mpController = useMultiplayerController({ send: socket.send, onMessage: socket.onMessage });
+  const [turnTimer, setTurnTimer] = useState<{ remaining: number; total: number } | null>(null);
 
   const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds, revealedFaceDown } = controller;
 
@@ -34,6 +52,39 @@ export function PalaceGame() {
     }
     prevWinnerRef.current = winnerId;
   }, [gameState.winnerId]);
+
+  // Navigate to waiting room when lobby is created/joined
+  useEffect(() => {
+    if (lobby.lobby && appScreen === 'online-menu') {
+      setAppScreen('waiting-room');
+    }
+  }, [lobby.lobby, appScreen]);
+
+  // Listen for game start
+  useEffect(() => {
+    const unsub = socket.onMessage('GAME_STARTED', () => {
+      if (appScreen === 'waiting-room') {
+        setAppScreen('online-game');
+      }
+    });
+    return unsub;
+  }, [socket.onMessage, appScreen]);
+
+  // Clear card selection when it's no longer the human's turn
+  const activeIsHumanTurn = appScreen === 'online-game' ? mpController.isHumanTurn : isHumanTurn;
+  useEffect(() => {
+    if (!activeIsHumanTurn) clear();
+  }, [activeIsHumanTurn, clear]);
+
+  // Listen for turn timer updates
+  useEffect(() => {
+    const unsub = socket.onMessage('TURN_TIMER', (msg) => {
+      if (msg.type === 'TURN_TIMER') {
+        setTurnTimer({ remaining: msg.remainingMs, total: msg.totalMs });
+      }
+    });
+    return unsub;
+  }, [socket.onMessage]);
 
   // Check if all selected cards are playable
   const canPlay = useMemo(() => {
@@ -141,9 +192,192 @@ export function PalaceGame() {
     controller.resume();
   }, [controller]);
 
+  // ── Online handlers ──
+
+  const handlePlayOnline = useCallback(() => {
+    socket.connect();
+    setAppScreen('online-menu');
+  }, [socket]);
+
+  const handleOnlineBack = useCallback(() => {
+    socket.disconnect();
+    setAppScreen('home');
+  }, [socket]);
+
+  const handleDisplayNameChange = useCallback((name: string) => {
+    setDisplayName(name);
+    socket.send({ type: 'SET_DISPLAY_NAME', displayName: name });
+  }, [setDisplayName, socket]);
+
+  const handleCreateLobby = useCallback((lobbyConfig: LobbyConfig) => {
+    // Ensure server knows display name
+    if (displayName) {
+      socket.send({ type: 'SET_DISPLAY_NAME', displayName });
+    }
+    lobby.createLobby(lobbyConfig);
+  }, [displayName, socket, lobby]);
+
+  const handleJoinLobby = useCallback((code: string, password?: string) => {
+    if (displayName) {
+      socket.send({ type: 'SET_DISPLAY_NAME', displayName });
+    }
+    lobby.joinLobby(code, password);
+  }, [displayName, socket, lobby]);
+
+  const handleLeaveLobby = useCallback(() => {
+    lobby.leaveLobby();
+    setAppScreen('online-menu');
+  }, [lobby]);
+
+  const handleSetReady = useCallback((ready: boolean) => {
+    lobby.setReady(ready);
+  }, [lobby]);
+
+  const handleLeaveOnlineGame = useCallback(() => {
+    lobby.leaveLobby();
+    socket.disconnect();
+    setAppScreen('home');
+  }, [lobby, socket]);
+
+  // ── Render ──
+
   if (appScreen === 'home') {
-    return <HomeScreen config={config} onConfigChange={setConfig} onNewGame={handleStartGame} />;
+    return (
+      <HomeScreen
+        config={config}
+        onConfigChange={setConfig}
+        onNewGame={handleStartGame}
+        onPlayOnline={handlePlayOnline}
+      />
+    );
   }
+
+  if (appScreen === 'online-menu') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <OnlineMenu
+          displayName={displayName}
+          onDisplayNameChange={handleDisplayNameChange}
+          lobbyList={lobby.lobbyList}
+          error={lobby.error}
+          onCreateLobby={handleCreateLobby}
+          onJoinLobby={handleJoinLobby}
+          onRefreshLobbies={lobby.refreshList}
+          onBack={handleOnlineBack}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (appScreen === 'waiting-room' && lobby.lobby) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <WaitingRoom
+          lobby={lobby.lobby}
+          myPlayerId={socket.playerId}
+          onReady={handleSetReady}
+          onLeave={handleLeaveLobby}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (appScreen === 'online-game') {
+    const mp = mpController;
+    const mpState = mp.gameState;
+    const mpFinished = mpState.gamePhase === GamePhase.Finished;
+
+    const mpCanPlay = (() => {
+      if (selectedIds.size === 0) return false;
+      for (const id of selectedIds) {
+        if (!mp.playableCardIds.has(id)) return false;
+      }
+      return true;
+    })();
+
+    const mpCanJumpIn = (() => {
+      if (selectedIds.size === 0) return false;
+      for (const id of selectedIds) {
+        if (!mp.jumpInCardIds.has(id)) return false;
+      }
+      return true;
+    })();
+
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          {/* Turn timer */}
+          {turnTimer && !mpFinished && (
+            <TurnTimerBar remainingMs={turnTimer.remaining} totalMs={turnTimer.total} />
+          )}
+
+          <GameTable
+            game={mpState}
+            isProcessing={mp.isProcessing}
+            selectedIds={selectedIds}
+            playableIds={mp.playableCardIds}
+            canPlay={mpCanPlay}
+            canPickUp={mp.canPickUp}
+            isHumanTurn={mp.isHumanTurn}
+            canHumanJumpIn={mp.canHumanJumpIn}
+            jumpInCardIds={mp.jumpInCardIds}
+            canJumpIn={mpCanJumpIn}
+            revealedFaceDown={mp.revealedFaceDown}
+            seatNames={mp.seatNames}
+            onCardPress={(cardId) => toggle(cardId, mp.playableZone)}
+            onDoubleTapCard={(cardId) => {
+              const human = mpState.players[0]!;
+              const tapped = human.hand.find((c) => c.id === cardId);
+              if (!tapped) return;
+              if (mp.canHumanJumpIn) {
+                const ids = human.hand.filter((c) => c.rank === tapped.rank && mp.jumpInCardIds.has(c.id)).map((c) => c.id);
+                if (ids.length > 0) { mp.jumpIn(ids); clear(); return; }
+              }
+              if (mp.isHumanTurn && mp.playableCardIds.has(cardId)) {
+                const ids = human.hand.filter((c) => c.rank === tapped.rank && mp.playableCardIds.has(c.id)).map((c) => c.id);
+                if (ids.length > 0) { mp.playCards(ids); clear(); }
+              }
+            }}
+            onPlay={() => { if (mpCanPlay) { mp.playCards([...selectedIds]); clear(); } }}
+            onPickUp={() => { mp.pickUpPile(); clear(); }}
+            onFlipFaceDown={(slotIndex) => mp.flipFaceDown(slotIndex)}
+            onConfirmFaceDown={() => mp.confirmFaceDown()}
+            onJumpIn={() => { if (mpCanJumpIn) { mp.jumpIn([...selectedIds]); clear(); } }}
+          />
+
+          {/* Setup overlay for multiplayer */}
+          {mpState.gamePhase === GamePhase.Setup && !mp.hasChosenFaceUp && (
+            <SetupOverlay
+              hand={mpState.players[0]!.hand}
+              onConfirm={(cardIds) => mp.chooseFaceUp(cardIds)}
+            />
+          )}
+
+          {/* Waiting for other players to choose */}
+          {mpState.gamePhase === GamePhase.Setup && mp.hasChosenFaceUp && (
+            <View style={styles.waitingOverlay}>
+              <Text style={styles.waitingText}>Waiting for others to choose...</Text>
+            </View>
+          )}
+
+          {/* Game over */}
+          {mpFinished && mpState.winnerId !== null && (
+            <PostGameOverlay
+              winnerId={mpState.winnerId}
+              leaderboard={mp.leaderboard}
+              playerCount={mpState.players.length}
+              seatNames={mp.seatNames}
+              rematchReady={mp.rematchReady}
+              onRequestRematch={mp.requestRematch}
+              onLeave={handleLeaveOnlineGame}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Singleplayer game screen ──
 
   const isFinished = gameState.gamePhase === GamePhase.Finished;
 
@@ -246,5 +480,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 16,
     fontWeight: '700',
+  },
+  waitingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlayBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  waitingText: {
+    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '600',
+    fontStyle: 'italic',
   },
 });

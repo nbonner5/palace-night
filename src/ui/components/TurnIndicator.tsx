@@ -8,13 +8,15 @@ interface TurnIndicatorProps {
   gamePhase: GamePhase;
   mustPlayAgain: boolean;
   isProcessing: boolean;
+  seatNames?: string[];
 }
 
-function getPlayerName(index: number): string {
-  return index === 0 ? 'You' : `CPU ${index}`;
+function getPlayerName(index: number, seatNames?: string[]): string {
+  if (index === 0) return 'You';
+  return seatNames?.[index] ?? `CPU ${index}`;
 }
 
-export function TurnIndicator({ currentPlayerIndex, gamePhase, mustPlayAgain, isProcessing }: TurnIndicatorProps) {
+export function TurnIndicator({ currentPlayerIndex, gamePhase, mustPlayAgain, isProcessing, seatNames }: TurnIndicatorProps) {
   if (gamePhase === GamePhase.Finished) {
     return null;
   }
@@ -25,7 +27,7 @@ export function TurnIndicator({ currentPlayerIndex, gamePhase, mustPlayAgain, is
   } else if (currentPlayerIndex === 0) {
     message = mustPlayAgain ? 'Play again!' : 'Your turn';
   } else {
-    message = `${getPlayerName(currentPlayerIndex)} is thinking...`;
+    message = `${getPlayerName(currentPlayerIndex, seatNames)} is thinking...`;
   }
 
   return (

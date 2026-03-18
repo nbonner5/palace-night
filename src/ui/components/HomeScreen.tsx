@@ -9,12 +9,14 @@ interface HomeScreenProps {
   config: GameConfig
   onConfigChange: (config: GameConfig) => void
   onNewGame: () => void
+  onPlayOnline?: () => void
 }
 
 export function HomeScreen({
   config,
   onConfigChange,
   onNewGame,
+  onPlayOnline,
 }: HomeScreenProps) {
   const [showSettings, setShowSettings] = useState(false)
 
@@ -34,8 +36,13 @@ export function HomeScreen({
         <Text style={styles.title}>PALACE NIGHT</Text>
         <Text style={styles.configSummary}>{configSummary}</Text>
         <Pressable onPress={onNewGame} style={styles.button}>
-          <Text style={styles.buttonText}>New Game</Text>
+          <Text style={styles.buttonText}>Play with CPU</Text>
         </Pressable>
+        {onPlayOnline && (
+          <Pressable onPress={onPlayOnline} style={styles.onlineButton}>
+            <Text style={styles.buttonText}>Play Online</Text>
+          </Pressable>
+        )}
       </View>
 
       {showSettings && (
@@ -94,6 +101,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 10,
     marginTop: 20,
+  },
+  onlineButton: {
+    backgroundColor: colors.buttonJumpIn,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 10,
   },
   buttonText: {
     color: colors.textPrimary,

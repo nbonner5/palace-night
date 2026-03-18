@@ -5,16 +5,17 @@ import { colors } from '../theme/colors';
 interface LeaderboardProps {
   leaderboard: Record<number, number>;
   playerCount: number;
+  seatNames?: string[];
 }
 
 function getPlayerName(index: number): string {
   return index === 0 ? 'You' : `CPU ${index}`;
 }
 
-export function Leaderboard({ leaderboard, playerCount }: LeaderboardProps) {
+export function Leaderboard({ leaderboard, playerCount, seatNames }: LeaderboardProps) {
   const rows = Array.from({ length: playerCount }, (_, i) => ({
     index: i,
-    name: getPlayerName(i),
+    name: seatNames?.[i] ?? getPlayerName(i),
     wins: leaderboard[i] ?? 0,
   })).sort((a, b) => b.wins - a.wins);
 

@@ -10,10 +10,11 @@ interface CpuPlayerAreaProps {
   player: PlayerState;
   playerIndex: number;
   isCurrentTurn: boolean;
+  name?: string;
 }
 
-export function CpuPlayerArea({ player, playerIndex, isCurrentTurn }: CpuPlayerAreaProps) {
-  const name = `CPU ${playerIndex}`;
+export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: nameProp }: CpuPlayerAreaProps) {
+  const name = nameProp ?? `CPU ${playerIndex}`;
   return (
     <View style={[styles.container, isCurrentTurn && styles.activeBorder]}>
       <PlayerLabel name={name} isCurrentTurn={isCurrentTurn} />

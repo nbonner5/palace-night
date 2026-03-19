@@ -8,9 +8,6 @@ export function canJumpIn(
   // Must have active jump-in window
   if (!state.jumpInWindow) return false;
 
-  // Can't jump in on your own play
-  if (state.jumpInWindow.playedByIndex === playerIndex) return false;
-
   const player = state.players[playerIndex]!;
 
   // Must be in hand phase (HandAndDraw or HandOnly) — faceUp/faceDown can't jump in

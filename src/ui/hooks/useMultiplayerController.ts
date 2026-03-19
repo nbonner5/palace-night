@@ -236,7 +236,6 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
   const canHumanJumpIn = useMemo(() => {
     const w = gameState.jumpInWindow;
     if (!w) return false;
-    if (w.playedByIndex === 0) return false;
     if (
       humanPlayer.phase !== PlayerPhase.HandAndDraw &&
       humanPlayer.phase !== PlayerPhase.HandOnly

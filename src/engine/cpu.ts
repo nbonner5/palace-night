@@ -118,9 +118,6 @@ export function decideCpuJumpIn(
     return null;
   }
 
-  // Can't jump in on own play
-  if (state.jumpInWindow.playedByIndex === playerIndex) return null;
-
   // Can't jump in on specials
   const targetRank = state.jumpInWindow.cardRank;
   if (targetRank === Rank.Two || targetRank === Rank.Joker) return null;
@@ -133,8 +130,9 @@ export function decideCpuJumpIn(
   const onPile = consecutiveSameRankOnTop(state.pile, targetRank);
   const wouldComplete = onPile + matching.length >= 4;
 
-  // Only jump in if 2+ matching cards or would trigger 4-of-a-kind
-  if (matching.length >= 2 || wouldComplete) {
+  // Self-jump-in is always beneficial (free extra play); otherwise need 2+ or 4-of-a-kind
+  const isSelfJumpIn = state.jumpInWindow.playedByIndex === playerIndex;
+  if (isSelfJumpIn || matching.length >= 2 || wouldComplete) {
     const maxPlayable = 4 - onPile;
     const cardIds = matching.slice(0, maxPlayable).map((c) => c.id);
     return {

@@ -206,7 +206,7 @@ describe('decideCpuJumpIn', () => {
     expect(decideCpuJumpIn(state, 1)).toBeNull();
   });
 
-  it('returns null for own play', () => {
+  it('self-jumps-in on own play', () => {
     const state = buildPlayingState({
       hands: [[card(Rank.Seven, Suit.Hearts, 'm1')], [], [], []],
     });
@@ -216,6 +216,8 @@ describe('decideCpuJumpIn', () => {
       jumpInWindow: { cardRank: Rank.Seven, playedByIndex: 0 },
     };
 
-    expect(decideCpuJumpIn(stateWithWindow, 0)).toBeNull();
+    const action = decideCpuJumpIn(stateWithWindow, 0);
+    expect(action).not.toBeNull();
+    expect(action!.type).toBe('JUMP_IN');
   });
 });

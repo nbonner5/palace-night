@@ -77,7 +77,6 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
   const canHumanJumpIn = useMemo(() => {
     const w = gameState.jumpInWindow;
     if (!w) return false;
-    if (w.playedByIndex === 0) return false;
     if (humanPlayer.phase !== PlayerPhase.HandAndDraw && humanPlayer.phase !== PlayerPhase.HandOnly) return false;
     return humanPlayer.hand.some((c) => c.rank === w.cardRank);
   }, [gameState.jumpInWindow, humanPlayer]);
@@ -119,7 +118,6 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
       if (playedEvent && playedEvent.type === 'CARDS_PLAYED' && !isSpecialCard(playedEvent.cards[0]!)) {
         // Check other CPUs for jump-in
         for (let i = 1; i < current.players.length; i++) {
-          if (i === cpuIndex) continue;
           const jumpAction = decideCpuJumpIn(current, i);
           if (jumpAction) {
             const jumpResult = processAction(current, jumpAction);

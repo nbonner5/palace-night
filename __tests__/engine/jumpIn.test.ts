@@ -43,7 +43,7 @@ describe('canJumpIn', () => {
     expect(canJumpIn(state, 1, ['ji1'])).toBe(false);
   });
 
-  it('rejects same player who played', () => {
+  it('allows same player who played (self-jump-in)', () => {
     const matchCard = card(Rank.Seven, Suit.Diamonds, 'ji1');
     const state = buildPlayingState({
       hands: [[matchCard], [], [], []],
@@ -54,7 +54,7 @@ describe('canJumpIn', () => {
       jumpInWindow: { cardRank: Rank.Seven, playedByIndex: 0 },
     };
 
-    expect(canJumpIn(stateWithWindow, 0, ['ji1'])).toBe(false);
+    expect(canJumpIn(stateWithWindow, 0, ['ji1'])).toBe(true);
   });
 
   it('rejects wrong rank', () => {

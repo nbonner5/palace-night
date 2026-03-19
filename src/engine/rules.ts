@@ -26,7 +26,7 @@ export function getPlayableZone(player: PlayerState): readonly Card[] {
     case PlayerPhase.FaceUp:
       return player.faceUp;
     case PlayerPhase.FaceDown:
-      return player.faceDown;
+      return player.hand;
   }
 }
 
@@ -34,11 +34,6 @@ export function getPlayableCards(
   player: PlayerState,
   pile: readonly Card[]
 ): Card[] {
-  if (player.phase === PlayerPhase.FaceDown) {
-    // Can't see face-down cards — no filtering
-    return [];
-  }
-
   const zone = getPlayableZone(player);
   const topCard = pile.length > 0 ? pile[pile.length - 1] : undefined;
 

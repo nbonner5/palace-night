@@ -120,10 +120,11 @@ describe('canJumpIn', () => {
     expect(canJumpIn(stateWithWindow, 1, ['ji1'])).toBe(false);
   });
 
-  it('rejects from FaceDown phase', () => {
+  it('allows from FaceDown phase with hand card', () => {
     const matchCard = card(Rank.Seven, Suit.Diamonds, 'ji1');
     const state = buildPlayingState({
-      faceDowns: [[], [matchCard], [], []],
+      hands: [[], [matchCard], [], []],
+      faceDowns: [[], [card(Rank.Five, Suit.Hearts, 'fd1')], [], []],
       phases: [
         PlayerPhase.HandAndDraw,
         PlayerPhase.FaceDown,
@@ -137,7 +138,27 @@ describe('canJumpIn', () => {
       jumpInWindow: { cardRank: Rank.Seven, playedByIndex: 0 },
     };
 
-    expect(canJumpIn(stateWithWindow, 1, ['ji1'])).toBe(false);
+    expect(canJumpIn(stateWithWindow, 1, ['ji1'])).toBe(true);
+  });
+
+  it('rejects from FaceDown phase with empty hand', () => {
+    const state = buildPlayingState({
+      hands: [[], [], [], []],
+      faceDowns: [[], [card(Rank.Seven, Suit.Diamonds, 'fd1')], [], []],
+      phases: [
+        PlayerPhase.HandAndDraw,
+        PlayerPhase.FaceDown,
+        PlayerPhase.HandAndDraw,
+        PlayerPhase.HandAndDraw,
+      ],
+    });
+
+    const stateWithWindow = {
+      ...state,
+      jumpInWindow: { cardRank: Rank.Seven, playedByIndex: 0 },
+    };
+
+    expect(canJumpIn(stateWithWindow, 1, ['fd1'])).toBe(false);
   });
 });
 

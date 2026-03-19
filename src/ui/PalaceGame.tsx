@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GameConfig, GamePhase, DEFAULT_CONFIG } from '../types';
+import { GameConfig, GamePhase, PlayerPhase, DEFAULT_CONFIG } from '../types';
 import { LobbyConfig } from '../types/multiplayer';
 import { colors } from './theme/colors';
 import { useGameController } from './hooks/useGameController';
@@ -39,7 +39,7 @@ export function PalaceGame() {
   const mpController = useMultiplayerController({ send: socket.send, onMessage: socket.onMessage });
   const [turnTimer, setTurnTimer] = useState<{ remaining: number; total: number } | null>(null);
 
-  const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds, revealedFaceDown } = controller;
+  const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds } = controller;
 
   // Record wins when winnerId transitions from null to a number
   useEffect(() => {
@@ -70,11 +70,11 @@ export function PalaceGame() {
     return unsub;
   }, [socket.onMessage, appScreen]);
 
-  // Clear card selection when it's no longer the human's turn
+  // Clear card selection on any turn change (removes stale jump-in highlights)
   const activeIsHumanTurn = appScreen === 'online-game' ? mpController.isHumanTurn : isHumanTurn;
   useEffect(() => {
-    if (!activeIsHumanTurn) clear();
-  }, [activeIsHumanTurn, clear]);
+    clear();
+  }, [gameState.currentPlayerIndex, clear]);
 
   // Listen for turn timer updates
   useEffect(() => {
@@ -119,12 +119,8 @@ export function PalaceGame() {
     clear();
   }, [controller, clear]);
 
-  const handleFlipFaceDown = useCallback((slotIndex: number) => {
-    controller.flipFaceDown(slotIndex);
-  }, [controller]);
-
-  const handleConfirmFaceDown = useCallback(() => {
-    controller.confirmFaceDown();
+  const handleRevealToHand = useCallback((slotIndex: number) => {
+    controller.revealToHand(slotIndex);
   }, [controller]);
 
   const handleJumpIn = useCallback(() => {
@@ -322,7 +318,7 @@ export function PalaceGame() {
             canHumanJumpIn={mp.canHumanJumpIn}
             jumpInCardIds={mp.jumpInCardIds}
             canJumpIn={mpCanJumpIn}
-            revealedFaceDown={mp.revealedFaceDown}
+            canRevealFaceDown={mpState.players[0]!.phase === PlayerPhase.FaceDown && mpState.players[0]!.hand.length === 0 && mpState.players[0]!.faceDown.length > 0}
             seatNames={mp.seatNames}
             onCardPress={(cardId) => toggle(cardId, mp.playableZone)}
             onDoubleTapCard={(cardId) => {
@@ -340,8 +336,7 @@ export function PalaceGame() {
             }}
             onPlay={() => { if (mpCanPlay) { mp.playCards([...selectedIds]); clear(); } }}
             onPickUp={() => { mp.pickUpPile(); clear(); }}
-            onFlipFaceDown={(slotIndex) => mp.flipFaceDown(slotIndex)}
-            onConfirmFaceDown={() => mp.confirmFaceDown()}
+            onRevealToHand={(slotIndex) => mp.revealToHand(slotIndex)}
             onJumpIn={() => { if (mpCanJumpIn) { mp.jumpIn([...selectedIds]); clear(); } }}
           />
 
@@ -405,13 +400,12 @@ export function PalaceGame() {
           canHumanJumpIn={canHumanJumpIn}
           jumpInCardIds={jumpInCardIds}
           canJumpIn={canJumpIn}
-          revealedFaceDown={revealedFaceDown}
+          canRevealFaceDown={gameState.players[0]!.phase === PlayerPhase.FaceDown && gameState.players[0]!.hand.length === 0 && gameState.players[0]!.faceDown.length > 0}
           onCardPress={handleCardPress}
           onDoubleTapCard={handleDoubleTapCard}
           onPlay={handlePlay}
           onPickUp={handlePickUp}
-          onFlipFaceDown={handleFlipFaceDown}
-          onConfirmFaceDown={handleConfirmFaceDown}
+          onRevealToHand={handleRevealToHand}
           onJumpIn={handleJumpIn}
         />
 

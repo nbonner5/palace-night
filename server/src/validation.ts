@@ -47,6 +47,11 @@ export function validatePlayerAction(
     return { valid: true };
   }
 
+  if (action.type === 'REVEAL_TO_HAND') {
+    // Revealing a face-down card doesn't require it to be your turn
+    return { valid: true };
+  }
+
   // All other actions require it to be your turn
   if (state.currentPlayerIndex !== seatIndex) {
     return { valid: false, error: 'Not your turn' };

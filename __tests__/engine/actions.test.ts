@@ -282,95 +282,126 @@ describe('PLAY_CARDS', () => {
     expect(result.state.players[0]!.faceUp).toHaveLength(0);
     expect(result.state.pile).toHaveLength(1);
   });
+
+  it('plays from hand in FaceDown phase', () => {
+    const handCard = card(Rank.Ace, Suit.Hearts, 'h1');
+    const state = buildPlayingState({
+      faceDowns: [[card(Rank.Five, Suit.Diamonds, 'fd1')], [], [], []],
+      hands: [[handCard], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
+      pile: [card(Rank.Five, Suit.Hearts, 'p1')],
+      currentPlayerIndex: 0,
+      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    const result = processAction(state, {
+      type: 'PLAY_CARDS',
+      playerIndex: 0,
+      cardIds: ['h1'],
+    });
+
+    expect(result.state.pile).toHaveLength(2);
+    expect(result.state.players[0]!.hand).toHaveLength(0);
+    // Still in FaceDown phase (has remaining faceDown cards)
+    expect(result.state.players[0]!.phase).toBe(PlayerPhase.FaceDown);
+  });
 });
 
-describe('FLIP_FACE_DOWN', () => {
-  it('plays face-down card if playable', () => {
+describe('REVEAL_TO_HAND', () => {
+  it('moves face-down card to hand', () => {
     const fd = card(Rank.Ace, Suit.Hearts, 'fd1');
-    const state = buildPlayingState({
-      faceDowns: [[fd], [], [], []],
-      hands: [[], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
-      pile: [card(Rank.Five, Suit.Hearts, 'p1')],
-      currentPlayerIndex: 0,
-      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
-    });
-
-    const result = processAction(state, {
-      type: 'FLIP_FACE_DOWN',
-      playerIndex: 0,
-      slotIndex: 0,
-    });
-
-    expect(result.state.pile.length).toBeGreaterThanOrEqual(1);
-    expect(result.events.some((e) => e.type === 'FACE_DOWN_FLIPPED' && e.playable)).toBe(true);
-  });
-
-  it('picks up pile when face-down card is unplayable', () => {
-    const fd = card(Rank.Three, Suit.Hearts, 'fd1');
-    const pile = [card(Rank.King, Suit.Hearts, 'p1')];
-
     const state = buildPlayingState({
       faceDowns: [[fd, card(Rank.Five, Suit.Diamonds, 'fd2')], [], [], []],
-      hands: [[], [card(Rank.Three, Suit.Diamonds, 'o1')], [], []],
-      pile,
-      currentPlayerIndex: 0,
-      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
-    });
-
-    const result = processAction(state, {
-      type: 'FLIP_FACE_DOWN',
-      playerIndex: 0,
-      slotIndex: 0,
-    });
-
-    // Player picks up pile + flipped card → hand
-    expect(result.state.players[0]!.hand).toHaveLength(2); // pile card + flipped card
-    expect(result.state.players[0]!.phase).toBe(PlayerPhase.HandOnly);
-    expect(result.state.pile).toHaveLength(0);
-  });
-
-  it('blowup from face-down 10', () => {
-    const fd = ten(Suit.Hearts, 'fd1');
-    const pile = [card(Rank.Five, Suit.Hearts, 'p1')];
-
-    const state = buildPlayingState({
-      faceDowns: [[fd], [], [], []],
       hands: [[], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
-      pile,
       currentPlayerIndex: 0,
       phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
     });
 
     const result = processAction(state, {
-      type: 'FLIP_FACE_DOWN',
+      type: 'REVEAL_TO_HAND',
       playerIndex: 0,
       slotIndex: 0,
     });
 
-    expect(result.state.pile).toHaveLength(0);
-    expect(result.state.burnPile.length).toBeGreaterThan(0);
-    expect(result.events.some((e) => e.type === 'BLOWUP')).toBe(true);
+    expect(result.state.players[0]!.hand).toHaveLength(1);
+    expect(result.state.players[0]!.hand[0]!.id).toBe('fd1');
+    expect(result.state.players[0]!.faceDown).toHaveLength(1);
+    expect(result.events.some((e) => e.type === 'CARD_REVEALED_TO_HAND')).toBe(true);
   });
 
-  it('last face-down card played wins the game', () => {
+  it('does not advance turn', () => {
     const fd = card(Rank.Ace, Suit.Hearts, 'fd1');
-
     const state = buildPlayingState({
       faceDowns: [[fd], [], [], []],
       hands: [[], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
-      pile: [card(Rank.Five, Suit.Hearts, 'p1')],
       currentPlayerIndex: 0,
       phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
     });
 
     const result = processAction(state, {
-      type: 'FLIP_FACE_DOWN',
+      type: 'REVEAL_TO_HAND',
       playerIndex: 0,
       slotIndex: 0,
     });
 
-    expect(result.state.winnerId).toBe(0);
-    expect(result.state.gamePhase).toBe(GamePhase.Finished);
+    expect(result.state.currentPlayerIndex).toBe(0);
+  });
+
+  it('does not change the pile', () => {
+    const fd = card(Rank.Ace, Suit.Hearts, 'fd1');
+    const pile = [card(Rank.Five, Suit.Hearts, 'p1')];
+    const state = buildPlayingState({
+      faceDowns: [[fd], [], [], []],
+      hands: [[], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
+      pile,
+      currentPlayerIndex: 0,
+      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    const result = processAction(state, {
+      type: 'REVEAL_TO_HAND',
+      playerIndex: 0,
+      slotIndex: 0,
+    });
+
+    expect(result.state.pile).toHaveLength(1);
+  });
+
+  it('can be done off-turn', () => {
+    const fd = card(Rank.Ace, Suit.Hearts, 'fd1');
+    const state = buildPlayingState({
+      faceDowns: [[], [fd], [], []],
+      hands: [[card(Rank.Three, Suit.Hearts, 'h1')], [], [], []],
+      currentPlayerIndex: 0,
+      phases: [PlayerPhase.HandOnly, PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    // Player 1 reveals even though it's player 0's turn
+    const result = processAction(state, {
+      type: 'REVEAL_TO_HAND',
+      playerIndex: 1,
+      slotIndex: 0,
+    });
+
+    expect(result.state.players[1]!.hand).toHaveLength(1);
+    expect(result.state.players[1]!.hand[0]!.id).toBe('fd1');
+  });
+
+  it('throws when hand is not empty', () => {
+    const fd = card(Rank.Ace, Suit.Hearts, 'fd1');
+    const state = buildPlayingState({
+      faceDowns: [[fd], [], [], []],
+      hands: [[card(Rank.Five, Suit.Hearts, 'h1')], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
+      currentPlayerIndex: 0,
+      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    expect(() =>
+      processAction(state, {
+        type: 'REVEAL_TO_HAND',
+        playerIndex: 0,
+        slotIndex: 0,
+      })
+    ).toThrow(/hand is empty/);
   });
 
   it('throws on wrong phase', () => {
@@ -382,11 +413,28 @@ describe('FLIP_FACE_DOWN', () => {
 
     expect(() =>
       processAction(state, {
-        type: 'FLIP_FACE_DOWN',
+        type: 'REVEAL_TO_HAND',
         playerIndex: 0,
         slotIndex: 0,
       })
     ).toThrow();
+  });
+
+  it('throws on invalid slot index', () => {
+    const state = buildPlayingState({
+      faceDowns: [[card(Rank.Ace, Suit.Hearts, 'fd1')], [], [], []],
+      hands: [[], [card(Rank.Three, Suit.Hearts, 'o1')], [], []],
+      currentPlayerIndex: 0,
+      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    expect(() =>
+      processAction(state, {
+        type: 'REVEAL_TO_HAND',
+        playerIndex: 0,
+        slotIndex: 5,
+      })
+    ).toThrow(/slot index/);
   });
 });
 

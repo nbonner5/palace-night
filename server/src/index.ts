@@ -271,32 +271,6 @@ function handlePing(socket: Socket, msg: ClientMessage & { type: 'PING' }): void
   });
 }
 
-function handleRevealFaceDown(socket: Socket, session: PlayerSession, msg: ClientMessage & { type: 'REVEAL_FACE_DOWN' }): void {
-  if (!session.lobbyId) {
-    sendError(socket, 'NOT_IN_LOBBY', 'Not in a game');
-    return;
-  }
-
-  const room = gameRooms.get(session.lobbyId);
-  if (!room) {
-    sendError(socket, 'INVALID_ACTION', 'No active game');
-    return;
-  }
-
-  const result = room.handleRevealFaceDown(session.playerId, msg.slotIndex, msg.stateVersion);
-  if (!result.success) {
-    sendError(socket, 'INVALID_ACTION', result.error ?? 'Reveal failed');
-    return;
-  }
-
-  sendMessage(socket, {
-    type: 'FACE_DOWN_REVEALED',
-    card: result.card!,
-    playable: result.playable!,
-    slotIndex: result.slotIndex!,
-  });
-}
-
 function handleGameAction(socket: Socket, session: PlayerSession, msg: ClientMessage & { type: 'GAME_ACTION' }): void {
   if (!session.lobbyId) {
     sendError(socket, 'NOT_IN_LOBBY', 'Not in a game');
@@ -537,9 +511,6 @@ io.on('connection', (socket) => {
         break;
       case 'GAME_ACTION':
         handleGameAction(socket, session, msg);
-        break;
-      case 'REVEAL_FACE_DOWN':
-        handleRevealFaceDown(socket, session, msg);
         break;
       case 'RECONNECT':
         handleReconnect(socket, msg);

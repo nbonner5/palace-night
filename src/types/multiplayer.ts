@@ -124,12 +124,6 @@ export interface C2S_SetRematchReady {
   readonly ready: boolean;
 }
 
-export interface C2S_RevealFaceDown {
-  readonly type: 'REVEAL_FACE_DOWN';
-  readonly slotIndex: number;
-  readonly stateVersion: number;
-}
-
 export type ClientMessage =
   | C2S_SetDisplayName
   | C2S_CreateLobby
@@ -140,8 +134,7 @@ export type ClientMessage =
   | C2S_Ping
   | C2S_GameAction
   | C2S_Reconnect
-  | C2S_SetRematchReady
-  | C2S_RevealFaceDown;
+  | C2S_SetRematchReady;
 
 // ── Server-to-Client Messages ──
 
@@ -250,13 +243,6 @@ export interface S2C_RematchUpdate {
   readonly yourSeatIndex: number;
 }
 
-export interface S2C_FaceDownRevealed {
-  readonly type: 'FACE_DOWN_REVEALED';
-  readonly card: Card;
-  readonly playable: boolean;
-  readonly slotIndex: number;
-}
-
 export interface S2C_RematchStarted {
   readonly type: 'REMATCH_STARTED';
   readonly state: FilteredGameState;
@@ -280,8 +266,7 @@ export type ServerMessage =
   | S2C_PlayerReconnected
   | S2C_GameOver
   | S2C_RematchUpdate
-  | S2C_RematchStarted
-  | S2C_FaceDownRevealed;
+  | S2C_RematchStarted;
 
 // ── Error Codes ──
 

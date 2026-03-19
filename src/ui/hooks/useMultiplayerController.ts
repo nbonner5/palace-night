@@ -82,11 +82,6 @@ interface UseMultiplayerControllerOptions {
 export function useMultiplayerController({ send, onMessage }: UseMultiplayerControllerOptions) {
   const [filteredState, setFilteredState] = useState<FilteredGameState | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [revealedFaceDown, setRevealedFaceDown] = useState<{
-    slotIndex: number;
-    card: Card;
-    playable: boolean;
-  } | null>(null);
   const [leaderboard, setLeaderboard] = useState<Record<number, number>>({});
   const [rematchReady, setRematchReady] = useState<{
     players: { localIndex: number; displayName: string; isReady: boolean }[];
@@ -112,16 +107,6 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
           setFilteredState(msg.state);
           filteredStateRef.current = msg.state;
           stateVersionRef.current = msg.state.stateVersion;
-          setIsProcessing(false);
-        }
-      }),
-      onMessage('FACE_DOWN_REVEALED', (msg) => {
-        if (msg.type === 'FACE_DOWN_REVEALED') {
-          setRevealedFaceDown({
-            slotIndex: msg.slotIndex,
-            card: msg.card,
-            playable: msg.playable,
-          });
           setIsProcessing(false);
         }
       }),
@@ -165,7 +150,6 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
           stateVersionRef.current = msg.state.stateVersion;
           setIsProcessing(false);
           setRematchReady(null);
-          setRevealedFaceDown(null);
           setHasChosenFaceUp(false);
         }
       }),
@@ -229,6 +213,9 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
     if (humanPlayer.phase === PlayerPhase.FaceUp) {
       return humanPlayer.faceUp;
     }
+    if (humanPlayer.phase === PlayerPhase.FaceDown) {
+      return humanPlayer.hand;
+    }
     return [];
   }, [humanPlayer]);
 
@@ -236,11 +223,8 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
   const canHumanJumpIn = useMemo(() => {
     const w = gameState.jumpInWindow;
     if (!w) return false;
-    if (
-      humanPlayer.phase !== PlayerPhase.HandAndDraw &&
-      humanPlayer.phase !== PlayerPhase.HandOnly
-    )
-      return false;
+    if (humanPlayer.phase === PlayerPhase.FaceUp) return false;
+    if (humanPlayer.phase === PlayerPhase.FaceDown && humanPlayer.hand.length === 0) return false;
     return humanPlayer.hand.some((c) => c.rank === w.cardRank);
   }, [gameState.jumpInWindow, humanPlayer]);
 
@@ -304,32 +288,21 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
     });
   }, [send, toServerIndex]);
 
-  const flipFaceDown = useCallback(
+  const revealToHand = useCallback(
     (slotIndex: number) => {
       setIsProcessing(true);
       send({
-        type: 'REVEAL_FACE_DOWN',
-        slotIndex,
+        type: 'GAME_ACTION',
+        action: {
+          type: 'REVEAL_TO_HAND',
+          playerIndex: toServerIndex(),
+          slotIndex,
+        },
         stateVersion: stateVersionRef.current,
       });
     },
-    [send]
+    [send, toServerIndex]
   );
-
-  const confirmFaceDown = useCallback(() => {
-    if (!revealedFaceDown) return;
-    setIsProcessing(true);
-    send({
-      type: 'GAME_ACTION',
-      action: {
-        type: 'FLIP_FACE_DOWN',
-        playerIndex: toServerIndex(),
-        slotIndex: revealedFaceDown.slotIndex,
-      },
-      stateVersion: stateVersionRef.current,
-    });
-    setRevealedFaceDown(null);
-  }, [revealedFaceDown, send, toServerIndex]);
 
   const jumpIn = useCallback(
     (cardIds: string[]) => {
@@ -376,15 +349,13 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
     canHumanJumpIn,
     jumpInCardIds,
     isPaused: false,
-    revealedFaceDown,
     pause,
     resume,
     newGame,
     chooseFaceUp,
     playCards,
     pickUpPile,
-    flipFaceDown,
-    confirmFaceDown,
+    revealToHand,
     jumpIn,
     // Multiplayer-specific
     hasChosenFaceUp,

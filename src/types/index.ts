@@ -88,8 +88,8 @@ export interface PlayCardsAction {
   readonly cardIds: readonly string[]
 }
 
-export interface FlipFaceDownAction {
-  readonly type: 'FLIP_FACE_DOWN'
+export interface RevealToHandAction {
+  readonly type: 'REVEAL_TO_HAND'
   readonly playerIndex: number
   readonly slotIndex: number
 }
@@ -108,7 +108,7 @@ export interface JumpInAction {
 export type Action =
   | ChooseFaceUpAction
   | PlayCardsAction
-  | FlipFaceDownAction
+  | RevealToHandAction
   | PickUpPileAction
   | JumpInAction
 
@@ -138,11 +138,10 @@ export interface BlowupEvent {
   readonly cardCount: number
 }
 
-export interface FaceDownFlippedEvent {
-  readonly type: 'FACE_DOWN_FLIPPED'
+export interface CardRevealedToHandEvent {
+  readonly type: 'CARD_REVEALED_TO_HAND'
   readonly playerIndex: number
   readonly card: Card
-  readonly playable: boolean
 }
 
 export interface JumpInEvent {
@@ -174,7 +173,7 @@ export type GameEvent =
   | CardDrawnEvent
   | PilePickedUpEvent
   | BlowupEvent
-  | FaceDownFlippedEvent
+  | CardRevealedToHandEvent
   | JumpInEvent
   | PhaseChangeEvent
   | TurnChangeEvent

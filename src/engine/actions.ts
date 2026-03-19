@@ -10,7 +10,7 @@ import {
 } from '../types';
 import { checkBlowup, executeBlowup } from './blowup';
 import { canJumpIn, getJumpInWindow } from './jumpIn';
-import { validatePlay, getPlayableZone, canPlayOn } from './rules';
+import { validatePlay, getPlayableZone } from './rules';
 import { drawCards, checkPhaseTransition, advanceTurn, checkWin } from './turnFlow';
 import { findLowestCard } from './rules';
 
@@ -121,8 +121,9 @@ function handlePlayCards(state: GameState, action: Extract<Action, { type: 'PLAY
     case PlayerPhase.FaceUp:
       playerUpdates = { faceUp: removeCards(player.faceUp, action.cardIds) };
       break;
-    default:
-      throw new Error('Cannot play cards from FaceDown phase');
+    case PlayerPhase.FaceDown:
+      playerUpdates = { hand: removeCards(player.hand, action.cardIds) };
+      break;
   }
 
   // Add to pile
@@ -189,111 +190,39 @@ function handlePlayCards(state: GameState, action: Extract<Action, { type: 'PLAY
   return { state: newState, events };
 }
 
-function handleFlipFaceDown(state: GameState, action: Extract<Action, { type: 'FLIP_FACE_DOWN' }>): ActionResult {
+function handleRevealToHand(state: GameState, action: Extract<Action, { type: 'REVEAL_TO_HAND' }>): ActionResult {
   if (state.gamePhase !== GamePhase.Playing) {
-    throw new Error('FLIP_FACE_DOWN only valid during Playing');
+    throw new Error('REVEAL_TO_HAND only valid during Playing');
   }
 
   const player = state.players[action.playerIndex]!;
   if (player.phase !== PlayerPhase.FaceDown) {
-    throw new Error('FLIP_FACE_DOWN only valid in FaceDown phase');
+    throw new Error('REVEAL_TO_HAND only valid in FaceDown phase');
+  }
+
+  if (player.hand.length > 0) {
+    throw new Error('REVEAL_TO_HAND only valid when hand is empty');
   }
 
   if (action.slotIndex < 0 || action.slotIndex >= player.faceDown.length) {
     throw new Error(`Invalid slot index: ${action.slotIndex}`);
   }
 
-  const flippedCard = player.faceDown[action.slotIndex]!;
-  const events: GameEvent[] = [];
-
-  const topCard = state.pile.length > 0 ? state.pile[state.pile.length - 1] : undefined;
-  const playable = canPlayOn(flippedCard, topCard);
-
-  events.push({
-    type: 'FACE_DOWN_FLIPPED',
-    playerIndex: action.playerIndex,
-    card: flippedCard,
-    playable,
-  });
-
-  // Remove from faceDown
+  const revealedCard = player.faceDown[action.slotIndex]!;
   const newFaceDown = player.faceDown.filter((_, i) => i !== action.slotIndex);
 
-  if (playable) {
-    // Add to pile
-    const newPile = [...state.pile, flippedCard];
-    let newState = updatePlayer(state, action.playerIndex, { faceDown: newFaceDown });
-    newState = { ...newState, pile: newPile };
+  const newState = updatePlayer(state, action.playerIndex, {
+    faceDown: newFaceDown,
+    hand: [revealedCard],
+  });
 
-    events.push({
-      type: 'CARDS_PLAYED',
-      playerIndex: action.playerIndex,
-      cards: [flippedCard],
-    });
+  const events: GameEvent[] = [{
+    type: 'CARD_REVEALED_TO_HAND',
+    playerIndex: action.playerIndex,
+    card: revealedCard,
+  }];
 
-    // Check blowup
-    const blowupResult = checkBlowup(newPile);
-    if (blowupResult.blowup) {
-      newState = executeBlowup(newState);
-      events.push({
-        type: 'BLOWUP',
-        reason: blowupResult.reason!,
-        cardCount: newPile.length,
-      });
-    } else if (flippedCard.rank === 2 || flippedCard.rank === 0) {
-      newState = { ...newState, mustPlayAgain: true, jumpInWindow: null };
-    } else {
-      newState = {
-        ...newState,
-        mustPlayAgain: false,
-        jumpInWindow: getJumpInWindow([flippedCard], action.playerIndex),
-      };
-    }
-
-    // Phase transition
-    const phaseResult = checkPhaseTransition(newState, action.playerIndex);
-    newState = phaseResult.state;
-    events.push(...phaseResult.events);
-
-    // Win check
-    newState = checkWin(newState, action.playerIndex);
-    if (newState.winnerId !== null) {
-      events.push({ type: 'GAME_WON', playerIndex: action.playerIndex });
-      return { state: newState, events };
-    }
-
-    // Advance turn if not must play again
-    if (!newState.mustPlayAgain) {
-      const turnResult = advanceTurn(newState);
-      newState = turnResult.state;
-      events.push(...turnResult.events);
-    }
-
-    return { state: newState, events };
-  } else {
-    // NOT playable — pick up pile + flipped card → hand, regress to HandOnly
-    const pileCards = [...state.pile, flippedCard];
-
-    let newState = updatePlayer(state, action.playerIndex, {
-      faceDown: newFaceDown,
-      hand: [...player.hand, ...pileCards],
-      phase: PlayerPhase.HandOnly,
-    });
-    newState = { ...newState, pile: [], jumpInWindow: null };
-
-    events.push({
-      type: 'PILE_PICKED_UP',
-      playerIndex: action.playerIndex,
-      cardCount: pileCards.length,
-    });
-
-    // Advance turn
-    const turnResult = advanceTurn(newState);
-    newState = turnResult.state;
-    events.push(...turnResult.events);
-
-    return { state: newState, events };
-  }
+  return { state: newState, events };
 }
 
 function handlePickUpPile(state: GameState, action: Extract<Action, { type: 'PICK_UP_PILE' }>): ActionResult {
@@ -429,8 +358,8 @@ export function processAction(state: GameState, action: Action): ActionResult {
       return handleChooseFaceUp(state, action);
     case 'PLAY_CARDS':
       return handlePlayCards(state, action);
-    case 'FLIP_FACE_DOWN':
-      return handleFlipFaceDown(state, action);
+    case 'REVEAL_TO_HAND':
+      return handleRevealToHand(state, action);
     case 'PICK_UP_PILE':
       return handlePickUpPile(state, action);
     case 'JUMP_IN':

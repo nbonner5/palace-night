@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, GameState } from '../../types';
+import { GameState } from '../../types';
 import { colors } from '../theme/colors';
 import { CpuPlayerArea } from './CpuPlayerArea';
 import { CenterArea } from './CenterArea';
@@ -17,14 +17,13 @@ interface GameTableProps {
   canHumanJumpIn: boolean;
   jumpInCardIds: Set<string>;
   canJumpIn: boolean;
-  revealedFaceDown: { slotIndex: number; card: Card; playable: boolean } | null;
+  canRevealFaceDown: boolean;
   seatNames?: string[];
   onCardPress: (cardId: string) => void;
   onDoubleTapCard?: (cardId: string) => void;
   onPlay: () => void;
   onPickUp: () => void;
-  onFlipFaceDown: (slotIndex: number) => void;
-  onConfirmFaceDown: () => void;
+  onRevealToHand: (slotIndex: number) => void;
   onJumpIn: () => void;
 }
 
@@ -39,14 +38,13 @@ export function GameTable({
   canHumanJumpIn,
   jumpInCardIds,
   canJumpIn,
-  revealedFaceDown,
+  canRevealFaceDown,
   seatNames,
   onCardPress,
   onDoubleTapCard,
   onPlay,
   onPickUp,
-  onFlipFaceDown,
-  onConfirmFaceDown,
+  onRevealToHand,
   onJumpIn,
 }: GameTableProps) {
   const cpuPlayers = game.players.slice(1);
@@ -107,13 +105,12 @@ export function GameTable({
         canHumanJumpIn={canHumanJumpIn}
         jumpInCardIds={jumpInCardIds}
         canJumpIn={canJumpIn}
-        revealedFaceDown={revealedFaceDown}
+        canRevealFaceDown={canRevealFaceDown}
         onCardPress={onCardPress}
         onDoubleTapCard={onDoubleTapCard}
         onPlay={onPlay}
         onPickUp={onPickUp}
-        onFlipFaceDown={onFlipFaceDown}
-        onConfirmFaceDown={onConfirmFaceDown}
+        onRevealToHand={onRevealToHand}
         onJumpIn={onJumpIn}
       />
     </View>

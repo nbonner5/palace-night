@@ -9,18 +9,16 @@ interface HumanTableCardsProps {
   faceDown: readonly Card[];
   faceUp: readonly Card[];
   playerPhase: PlayerPhase;
-  isHumanTurn: boolean;
-  revealedFaceDown: { slotIndex: number; card: Card; playable: boolean } | null;
+  canReveal: boolean;
   onSlotPress: (slotIndex: number) => void;
 }
 
 const FACE_DOWN_OFFSET = 10;
 
-export function HumanTableCards({ faceDown, faceUp, playerPhase, isHumanTurn, revealedFaceDown, onSlotPress }: HumanTableCardsProps) {
+export function HumanTableCards({ faceDown, faceUp, playerPhase, canReveal, onSlotPress }: HumanTableCardsProps) {
   if (faceDown.length === 0) return null;
 
   const isFaceDownPhase = playerPhase === PlayerPhase.FaceDown;
-  const canTap = isFaceDownPhase && isHumanTurn && revealedFaceDown === null;
 
   return (
     <View style={styles.container}>
@@ -51,9 +49,7 @@ export function HumanTableCards({ faceDown, faceUp, playerPhase, isHumanTurn, re
                   disabled={true}
                   playable={false}
                 />
-              ) : revealedFaceDown?.slotIndex === index ? (
-                <CardView card={revealedFaceDown.card} faceDown={false} disabled={true} playable={revealedFaceDown.playable} />
-              ) : canTap ? (
+              ) : canReveal ? (
                 <Pressable
                   onPress={() => onSlotPress(index)}
                   style={[styles.slot, styles.slotTappable]}

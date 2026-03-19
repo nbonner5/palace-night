@@ -98,21 +98,38 @@ describe('decideCpuAction', () => {
     expect(action.type).toBe('PICK_UP_PILE');
   });
 
-  it('flips random face-down in FaceDown phase', () => {
+  it('returns REVEAL_TO_HAND when hand empty in FaceDown phase', () => {
     const fd1 = card(Rank.Three, Suit.Hearts, 'fd1');
     const fd2 = card(Rank.Five, Suit.Hearts, 'fd2');
 
     const state = buildPlayingState({
       faceDowns: [[fd1, fd2], [], [], []],
+      hands: [[], [], [], []],
       currentPlayerIndex: 0,
       phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
     });
 
     const action = decideCpuAction(state, 0);
-    expect(action.type).toBe('FLIP_FACE_DOWN');
-    if (action.type === 'FLIP_FACE_DOWN') {
-      expect(action.slotIndex).toBeGreaterThanOrEqual(0);
-      expect(action.slotIndex).toBeLessThan(2);
+    expect(action.type).toBe('REVEAL_TO_HAND');
+    if (action.type === 'REVEAL_TO_HAND') {
+      expect(action.slotIndex).toBe(0);
+    }
+  });
+
+  it('plays from hand in FaceDown phase', () => {
+    const handCard = card(Rank.Ace, Suit.Hearts, 'h1');
+
+    const state = buildPlayingState({
+      faceDowns: [[card(Rank.Five, Suit.Diamonds, 'fd1')], [], [], []],
+      hands: [[handCard], [], [], []],
+      currentPlayerIndex: 0,
+      phases: [PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    const action = decideCpuAction(state, 0);
+    expect(action.type).toBe('PLAY_CARDS');
+    if (action.type === 'PLAY_CARDS') {
+      expect(action.cardIds).toContain('h1');
     }
   });
 
@@ -204,6 +221,27 @@ describe('decideCpuJumpIn', () => {
     });
 
     expect(decideCpuJumpIn(state, 1)).toBeNull();
+  });
+
+  it('jumps in from FaceDown phase with hand card', () => {
+    const m1 = card(Rank.Seven, Suit.Diamonds, 'm1');
+    const m2 = card(Rank.Seven, Suit.Clubs, 'm2');
+
+    const state = buildPlayingState({
+      hands: [[], [m1, m2], [], []],
+      faceDowns: [[], [card(Rank.Five, Suit.Hearts, 'fd1')], [], []],
+      pile: [card(Rank.Seven, Suit.Hearts, 'p1')],
+      phases: [PlayerPhase.HandOnly, PlayerPhase.FaceDown, PlayerPhase.HandOnly, PlayerPhase.HandOnly],
+    });
+
+    const stateWithWindow = {
+      ...state,
+      jumpInWindow: { cardRank: Rank.Seven, playedByIndex: 0 },
+    };
+
+    const action = decideCpuJumpIn(stateWithWindow, 1);
+    expect(action).not.toBeNull();
+    expect(action!.type).toBe('JUMP_IN');
   });
 
   it('self-jumps-in on own play', () => {

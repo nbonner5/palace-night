@@ -14,7 +14,6 @@ import {
   decideCpuAction,
   decideCpuJumpIn,
   isSpecialCard,
-  canPlayOn,
 } from '../../engine';
 
 const CPU_TURN_DELAY = 1200;
@@ -27,16 +26,22 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
   const [gameState, setGameState] = useState<GameState>(() => createGame(config));
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [revealedFaceDown, setRevealedFaceDown] = useState<{ slotIndex: number; card: Card; playable: boolean } | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const configRef = useRef(config);
   configRef.current = config;
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
 
   // Clean up timeouts on unmount
   useEffect(() => {
     return () => {
       for (const t of timeoutRef.current) clearTimeout(t);
     };
+  }, []);
+
+  const updateState = useCallback((state: GameState) => {
+    gameStateRef.current = state;
+    setGameState(state);
   }, []);
 
   const clearTimeouts = useCallback(() => {
@@ -70,6 +75,9 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     if (humanPlayer.phase === PlayerPhase.FaceUp) {
       return humanPlayer.faceUp;
     }
+    if (humanPlayer.phase === PlayerPhase.FaceDown) {
+      return humanPlayer.hand;
+    }
     return [];
   }, [humanPlayer]);
 
@@ -77,7 +85,8 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
   const canHumanJumpIn = useMemo(() => {
     const w = gameState.jumpInWindow;
     if (!w) return false;
-    if (humanPlayer.phase !== PlayerPhase.HandAndDraw && humanPlayer.phase !== PlayerPhase.HandOnly) return false;
+    if (humanPlayer.phase === PlayerPhase.FaceUp) return false;
+    if (humanPlayer.phase === PlayerPhase.FaceDown && humanPlayer.hand.length === 0) return false;
     return humanPlayer.hand.some((c) => c.rank === w.cardRank);
   }, [gameState.jumpInWindow, humanPlayer]);
 
@@ -97,6 +106,9 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     let iterations = 0;
 
     const step = () => {
+      // Pick up latest state (incorporates any off-turn human actions)
+      current = gameStateRef.current;
+
       if (iterations++ > MAX_CPU_ITERATIONS) {
         setIsProcessing(false);
         return;
@@ -111,7 +123,25 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
       const action = decideCpuAction(current, cpuIndex);
       const result = processAction(current, action);
       current = result.state;
-      setGameState(current);
+      updateState(current);
+
+      // If CPU just revealed a face-down card, immediately decide and play the follow-up
+      if (action.type === 'REVEAL_TO_HAND' && current.currentPlayerIndex === cpuIndex) {
+        const followUp = decideCpuAction(current, cpuIndex);
+        const followUpResult = processAction(current, followUp);
+        current = followUpResult.state;
+        updateState(current);
+      }
+
+      // Auto-reveal face-down cards for all CPUs (ensures they have a card for jump-ins)
+      for (let i = 1; i < current.players.length; i++) {
+        const p = current.players[i]!;
+        if (p.phase === PlayerPhase.FaceDown && p.hand.length === 0 && p.faceDown.length > 0) {
+          const revealResult = processAction(current, { type: 'REVEAL_TO_HAND', playerIndex: i, slotIndex: 0 });
+          current = revealResult.state;
+          updateState(current);
+        }
+      }
 
       // Check for CPU jump-ins after non-special plays
       const playedEvent = result.events.find((e) => e.type === 'CARDS_PLAYED');
@@ -122,7 +152,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
           if (jumpAction) {
             const jumpResult = processAction(current, jumpAction);
             current = jumpResult.state;
-            setGameState(current);
+            updateState(current);
             break; // Only one jump-in per play
           }
         }
@@ -148,7 +178,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
           if (jumpAction) {
             const jumpResult = processAction(current, jumpAction);
             current = jumpResult.state;
-            setGameState(current);
+            updateState(current);
             break;
           }
         }
@@ -162,7 +192,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     } else {
       scheduleTimeout(step, CPU_TURN_DELAY);
     }
-  }, [scheduleTimeout]);
+  }, [scheduleTimeout, updateState]);
 
   // Watch for CPU turns
   useEffect(() => {
@@ -223,49 +253,40 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     }
   }, [gameState]);
 
-  const flipFaceDown = useCallback((slotIndex: number) => {
-    const card = gameState.players[0]?.faceDown[slotIndex];
-    if (!card) return;
-    const pileTop = gameState.pile[gameState.pile.length - 1];
-    const playable = canPlayOn(card, pileTop);
-    setRevealedFaceDown({ slotIndex, card, playable });
-  }, [gameState]);
-
-  const confirmFaceDown = useCallback(() => {
-    if (!revealedFaceDown) return;
+  const revealToHand = useCallback((slotIndex: number) => {
     try {
-      const result = processAction(gameState, {
-        type: 'FLIP_FACE_DOWN',
+      const result = processAction(gameStateRef.current, {
+        type: 'REVEAL_TO_HAND',
         playerIndex: 0,
-        slotIndex: revealedFaceDown.slotIndex,
+        slotIndex,
       });
+      gameStateRef.current = result.state;
       setGameState(result.state);
     } catch (e) {
-      console.warn('Invalid flip:', e);
+      console.warn('Invalid reveal:', e);
     }
-    setRevealedFaceDown(null);
-  }, [gameState, revealedFaceDown]);
+  }, []);
 
   const jumpIn = useCallback((cardIds: string[]) => {
     try {
       clearTimeouts();
       setIsProcessing(false);
-      const result = processAction(gameState, {
+      const result = processAction(gameStateRef.current, {
         type: 'JUMP_IN',
         playerIndex: 0,
         cardIds,
       });
+      gameStateRef.current = result.state;
       setGameState(result.state);
     } catch (e) {
       console.warn('Invalid jump-in:', e);
     }
-  }, [gameState, clearTimeouts]);
+  }, [clearTimeouts]);
 
   const pause = useCallback(() => {
     clearTimeouts();
     setIsProcessing(false);
     setIsPaused(true);
-    setRevealedFaceDown(null);
   }, [clearTimeouts]);
 
   const resume = useCallback(() => {
@@ -276,7 +297,6 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     clearTimeouts();
     setIsProcessing(false);
     setIsPaused(false);
-    setRevealedFaceDown(null);
     setGameState(createGame(configRef.current));
   }, [clearTimeouts]);
 
@@ -290,15 +310,13 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     canHumanJumpIn,
     jumpInCardIds,
     isPaused,
-    revealedFaceDown,
     pause,
     resume,
     newGame,
     chooseFaceUp,
     playCards,
     pickUpPile,
-    flipFaceDown,
-    confirmFaceDown,
+    revealToHand,
     jumpIn,
   };
 }

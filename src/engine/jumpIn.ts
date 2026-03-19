@@ -10,13 +10,9 @@ export function canJumpIn(
 
   const player = state.players[playerIndex]!;
 
-  // Must be in hand phase (HandAndDraw or HandOnly) — faceUp/faceDown can't jump in
-  if (
-    player.phase !== PlayerPhase.HandAndDraw &&
-    player.phase !== PlayerPhase.HandOnly
-  ) {
-    return false;
-  }
+  // FaceUp can't jump in; FaceDown can only jump in when they have a card in hand
+  if (player.phase === PlayerPhase.FaceUp) return false;
+  if (player.phase === PlayerPhase.FaceDown && player.hand.length === 0) return false;
 
   // Cards must exist in hand
   for (const id of cardIds) {

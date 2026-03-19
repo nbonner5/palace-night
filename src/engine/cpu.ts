@@ -22,14 +22,12 @@ export function decideCpuAction(state: GameState, playerIndex: number): Action {
 
   const player = state.players[playerIndex]!;
 
-  // FaceDown phase: always pick first slot (cards are already shuffled)
+  // FaceDown phase: reveal a card if hand is empty, otherwise fall through to normal play
   if (player.phase === PlayerPhase.FaceDown) {
-    const slotIndex = 0;
-    return {
-      type: 'FLIP_FACE_DOWN',
-      playerIndex,
-      slotIndex,
-    };
+    if (player.hand.length === 0 && player.faceDown.length > 0) {
+      return { type: 'REVEAL_TO_HAND', playerIndex, slotIndex: 0 };
+    }
+    // Fall through to normal play logic (hand has a card)
   }
 
   // Get playable cards
@@ -110,13 +108,9 @@ export function decideCpuJumpIn(
 
   const player = state.players[playerIndex]!;
 
-  // Only jump in from hand phases
-  if (
-    player.phase !== PlayerPhase.HandAndDraw &&
-    player.phase !== PlayerPhase.HandOnly
-  ) {
-    return null;
-  }
+  // FaceUp can't jump in; FaceDown can only jump in when they have a card in hand
+  if (player.phase === PlayerPhase.FaceUp) return null;
+  if (player.phase === PlayerPhase.FaceDown && player.hand.length === 0) return null;
 
   // Can't jump in on specials
   const targetRank = state.jumpInWindow.cardRank;

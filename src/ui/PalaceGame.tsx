@@ -71,10 +71,12 @@ export function PalaceGame() {
   }, [socket.onMessage, appScreen]);
 
   // Clear card selection on any turn change (removes stale jump-in highlights)
-  const activeIsHumanTurn = appScreen === 'online-game' ? mpController.isHumanTurn : isHumanTurn;
+  const activeCurrentPlayerIndex = appScreen === 'online-game'
+    ? mpController.gameState.currentPlayerIndex
+    : gameState.currentPlayerIndex;
   useEffect(() => {
     clear();
-  }, [gameState.currentPlayerIndex, clear]);
+  }, [activeCurrentPlayerIndex, clear]);
 
   // Listen for turn timer updates
   useEffect(() => {

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Card, Rank, Suit } from '../../types';
 import { colors } from '../theme/colors';
-import { CARD_BORDER_RADIUS, CARD_HEIGHT, CARD_HEIGHT_SMALL, CARD_WIDTH, CARD_WIDTH_SMALL } from '../theme/layout';
+import { CARD_BORDER_RADIUS, CARD_HEIGHT, CARD_HEIGHT_SMALL, CARD_WIDTH, CARD_WIDTH_SMALL, CARD_WIDTH_TINY } from '../theme/layout';
 
 const RANK_DISPLAY: Record<number, string> = {
   [Rank.Joker]: 'JK',
@@ -38,14 +38,17 @@ interface CardViewProps {
   onDoubleTap?: () => void;
   size?: 'small' | 'normal';
   disabled?: boolean;
+  customWidth?: number;
+  customHeight?: number;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function CardView({ card, faceDown, selected = false, playable = true, onPress, onDoubleTap, size = 'normal', disabled = false }: CardViewProps) {
+export function CardView({ card, faceDown, selected = false, playable = true, onPress, onDoubleTap, size = 'normal', disabled = false, customWidth, customHeight }: CardViewProps) {
   const isSmall = size === 'small';
-  const w = isSmall ? CARD_WIDTH_SMALL : CARD_WIDTH;
-  const h = isSmall ? CARD_HEIGHT_SMALL : CARD_HEIGHT;
+  const w = customWidth ?? (isSmall ? CARD_WIDTH_SMALL : CARD_WIDTH);
+  const h = customHeight ?? (isSmall ? CARD_HEIGHT_SMALL : CARD_HEIGHT);
+  const isTiny = customWidth != null && customWidth <= CARD_WIDTH_TINY;
   const lastTapRef = useRef(0);
 
   const handlePress = () => {
@@ -92,17 +95,26 @@ export function CardView({ card, faceDown, selected = false, playable = true, on
         animStyle,
       ]}
     >
-      <View style={styles.topLeft}>
-        <Text style={[styles.rankText, { color: textColor }, isSmall && styles.rankTextSmall]}>{rankStr}</Text>
-        {!isJoker && <Text style={[styles.suitTextSmall, { color: textColor }]}>{suitStr}</Text>}
-      </View>
-      <Text style={[styles.centerSuit, { color: textColor }, isSmall && styles.centerSuitSmall]}>
-        {isJoker ? 'JK' : suitStr}
-      </Text>
-      <View style={styles.bottomRight}>
-        {!isJoker && <Text style={[styles.suitTextSmall, { color: textColor }]}>{suitStr}</Text>}
-        <Text style={[styles.rankText, { color: textColor }, isSmall && styles.rankTextSmall]}>{rankStr}</Text>
-      </View>
+      {isTiny ? (
+        <>
+          <Text style={[styles.tinyRank, { color: textColor }]}>{rankStr}</Text>
+          <Text style={[styles.tinySuit, { color: textColor }]}>{isJoker ? 'JK' : suitStr}</Text>
+        </>
+      ) : (
+        <>
+          <View style={styles.topLeft}>
+            <Text style={[styles.rankText, { color: textColor }, isSmall && styles.rankTextSmall]}>{rankStr}</Text>
+            {!isJoker && <Text style={[styles.suitTextSmall, { color: textColor }]}>{suitStr}</Text>}
+          </View>
+          <Text style={[styles.centerSuit, { color: textColor }, isSmall && styles.centerSuitSmall]}>
+            {isJoker ? 'JK' : suitStr}
+          </Text>
+          <View style={styles.bottomRight}>
+            {!isJoker && <Text style={[styles.suitTextSmall, { color: textColor }]}>{suitStr}</Text>}
+            <Text style={[styles.rankText, { color: textColor }, isSmall && styles.rankTextSmall]}>{rankStr}</Text>
+          </View>
+        </>
+      )}
     </AnimatedPressable>
   );
 }
@@ -201,5 +213,14 @@ const styles = StyleSheet.create({
   },
   centerSuitSmall: {
     fontSize: 14,
+  },
+  tinyRank: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 12,
+  },
+  tinySuit: {
+    fontSize: 10,
+    lineHeight: 12,
   },
 });

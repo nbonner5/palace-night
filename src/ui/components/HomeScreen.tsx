@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { GameConfig } from '../../types'
 import { colors } from '../theme/colors'
+import { useLayout } from '../theme/layout'
 import { SettingsOverlay } from './SettingsOverlay'
 
 interface HomeScreenProps {
@@ -19,6 +20,7 @@ export function HomeScreen({
   onPlayOnline,
 }: HomeScreenProps) {
   const [showSettings, setShowSettings] = useState(false)
+  const { isNarrow } = useLayout()
 
   const configSummary = `${config.cpuCount} CPU${config.cpuCount !== 1 ? 's' : ''} | ${config.deckCount} Deck${config.deckCount !== 1 ? 's' : ''} | Jokers ${config.includeJokers ? 'On' : 'Off'}`
 
@@ -33,7 +35,7 @@ export function HomeScreen({
           <Text style={styles.settingsIcon}>{'\u2699'}</Text>
         </Pressable>
 
-        <Text style={styles.title}>PALACE NIGHT</Text>
+        <Text style={[styles.title, isNarrow && styles.titleNarrow]}>PALACE NIGHT</Text>
         <Text style={styles.configSummary}>{configSummary}</Text>
         <Pressable onPress={onNewGame} style={styles.button}>
           <Text style={styles.buttonText}>Play with CPU</Text>
@@ -89,6 +91,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Georgia',
     fontWeight: 'bold',
     color: colors.turnGold,
+  },
+  titleNarrow: {
+    fontSize: 36,
   },
   configSummary: {
     fontSize: 14,

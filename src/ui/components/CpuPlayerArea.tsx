@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PlayerState } from '../../types';
 import { colors } from '../theme/colors';
-import { CARD_WIDTH_SMALL, CARD_HEIGHT_SMALL, CARD_BORDER_RADIUS } from '../theme/layout';
+import { CARD_BORDER_RADIUS, useLayout } from '../theme/layout';
 import { CardView } from './CardView';
 import { PlayerLabel } from './PlayerLabel';
 
@@ -15,14 +15,15 @@ interface CpuPlayerAreaProps {
 
 export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: nameProp }: CpuPlayerAreaProps) {
   const name = nameProp ?? `CPU ${playerIndex}`;
+  const { cpuCardWidth, cpuCardHeight, isNarrow } = useLayout();
   return (
-    <View style={[styles.container, isCurrentTurn && styles.activeBorder]}>
+    <View style={[styles.container, isCurrentTurn && styles.activeBorder, isNarrow && styles.containerNarrow]}>
       <PlayerLabel name={name} isCurrentTurn={isCurrentTurn} />
 
       {/* Hand count as card backs */}
       {player.hand.length > 0 && (
         <View style={styles.row}>
-          <View style={styles.miniCardBack}>
+          <View style={[styles.miniCardBack, { width: cpuCardWidth, height: cpuCardHeight }]}>
             <Text style={styles.countText}>{player.hand.length}</Text>
           </View>
         </View>
@@ -32,7 +33,7 @@ export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: namePr
       {player.faceUp.length > 0 && (
         <View style={styles.row}>
           {player.faceUp.map((card) => (
-            <CardView key={card.id} card={card} faceDown={false} size="small" disabled />
+            <CardView key={card.id} card={card} faceDown={false} size="small" disabled customWidth={cpuCardWidth} customHeight={cpuCardHeight} />
           ))}
         </View>
       )}
@@ -41,7 +42,7 @@ export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: namePr
       {player.faceDown.length > 0 && (
         <View style={styles.row}>
           {player.faceDown.map((card, i) => (
-            <CardView key={card.id} card={null} faceDown size="small" />
+            <CardView key={card.id} card={null} faceDown size="small" customWidth={cpuCardWidth} customHeight={cpuCardHeight} />
           ))}
         </View>
       )}
@@ -67,9 +68,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 2,
   },
+  containerNarrow: {
+    paddingHorizontal: 2,
+    minWidth: 0,
+  },
   miniCardBack: {
-    width: CARD_WIDTH_SMALL,
-    height: CARD_HEIGHT_SMALL,
     backgroundColor: colors.cardBack,
     borderRadius: CARD_BORDER_RADIUS,
     borderWidth: 1,

@@ -22,6 +22,7 @@ import {
   Lobby,
 } from './lobbyManager';
 import { GameRoom } from './gameRoom';
+import { getMaxPlayerCount } from '../../src/engine/configLimits';
 
 const PORT = process.env['PORT'] ? parseInt(process.env['PORT'], 10) : 3001;
 const RECONNECT_TIMEOUT_MS = 30_000;
@@ -165,6 +166,15 @@ function handleCreateLobby(socket: Socket, session: PlayerSession, msg: ClientMe
     sendError(socket, 'NAME_REQUIRED', 'Set a display name first');
     return;
   }
+
+  if (msg.config) {
+    const maxPlayers = getMaxPlayerCount(msg.config.deckCount, msg.config.includeJokers);
+    if (msg.config.maxPlayers > maxPlayers) {
+      sendError(socket, 'INVALID_ACTION', `Too many players for ${msg.config.deckCount} deck(s): max ${maxPlayers}`);
+      return;
+    }
+  }
+
   if (session.lobbyId) {
     handleLeaveLobby(socket, session);
   }

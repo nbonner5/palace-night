@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GameConfig } from '../../types';
-import { validateConfig } from '../../engine';
+import { validateConfig, getMaxPlayerCount } from '../../engine';
 import { colors } from '../theme/colors';
 
 interface SettingsOverlayProps {
   config: GameConfig;
   onSave: (config: GameConfig) => void;
   onClose: () => void;
-}
-
-function getMaxCpuCount(deckCount: number, includeJokers: boolean): number {
-  const totalCards = deckCount * 52 + (includeJokers ? deckCount * 2 : 0);
-  return Math.floor(totalCards / 9) - 1; // subtract 1 for human player
 }
 
 export function SettingsOverlay({ config, onSave, onClose }: SettingsOverlayProps) {
@@ -22,18 +17,18 @@ export function SettingsOverlay({ config, onSave, onClose }: SettingsOverlayProp
 
   const currentConfig: GameConfig = { cpuCount, deckCount, includeJokers };
   const validation = validateConfig(currentConfig);
-  const maxCpu = Math.min(6, getMaxCpuCount(deckCount, includeJokers));
+  const maxCpu = Math.min(6, getMaxPlayerCount(deckCount, includeJokers) - 1);
 
   const handleDeckChange = (newDeck: number) => {
     setDeckCount(newDeck);
-    const newMax = Math.min(6, getMaxCpuCount(newDeck, includeJokers));
+    const newMax = Math.min(6, getMaxPlayerCount(newDeck, includeJokers) - 1);
     if (cpuCount > newMax) setCpuCount(Math.max(1, newMax));
   };
 
   const handleJokersToggle = () => {
     const newJokers = !includeJokers;
     setIncludeJokers(newJokers);
-    const newMax = Math.min(6, getMaxCpuCount(deckCount, newJokers));
+    const newMax = Math.min(6, getMaxPlayerCount(deckCount, newJokers) - 1);
     if (cpuCount > newMax) setCpuCount(Math.max(1, newMax));
   };
 

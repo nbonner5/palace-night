@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LobbyConfig, DEFAULT_LOBBY_CONFIG } from '../../types/multiplayer';
+import { getMaxPlayerCount } from '../../engine/configLimits';
 import { colors } from '../theme/colors';
 
 interface CreateLobbyOverlayProps {
@@ -14,6 +15,21 @@ export function CreateLobbyOverlay({ onCreate, onClose }: CreateLobbyOverlayProp
   const [includeJokers, setIncludeJokers] = useState(DEFAULT_LOBBY_CONFIG.includeJokers);
   const [isPrivate, setIsPrivate] = useState(false);
   const [password, setPassword] = useState('');
+
+  const maxPlayerCount = Math.min(7, getMaxPlayerCount(deckCount, includeJokers));
+
+  const handleDeckChange = (newDeck: number) => {
+    setDeckCount(newDeck);
+    const newMax = Math.min(7, getMaxPlayerCount(newDeck, includeJokers));
+    if (maxPlayers > newMax) setMaxPlayers(Math.max(2, newMax));
+  };
+
+  const handleJokersToggle = () => {
+    const newJokers = !includeJokers;
+    setIncludeJokers(newJokers);
+    const newMax = Math.min(7, getMaxPlayerCount(deckCount, newJokers));
+    if (maxPlayers > newMax) setMaxPlayers(Math.max(2, newMax));
+  };
 
   const handleCreate = () => {
     onCreate({
@@ -37,10 +53,20 @@ export function CreateLobbyOverlay({ onCreate, onClose }: CreateLobbyOverlayProp
             {[2, 3, 4, 5, 6, 7].map((n) => (
               <Pressable
                 key={n}
-                onPress={() => setMaxPlayers(n)}
-                style={[styles.sliderItem, maxPlayers === n && styles.sliderItemActive]}
+                onPress={() => n <= maxPlayerCount && setMaxPlayers(n)}
+                style={[
+                  styles.sliderItem,
+                  maxPlayers === n && styles.sliderItemActive,
+                  n > maxPlayerCount && styles.sliderItemDisabled,
+                ]}
               >
-                <Text style={[styles.sliderText, maxPlayers === n && styles.sliderTextActive]}>
+                <Text
+                  style={[
+                    styles.sliderText,
+                    maxPlayers === n && styles.sliderTextActive,
+                    n > maxPlayerCount && styles.sliderTextDisabled,
+                  ]}
+                >
                   {n}
                 </Text>
               </Pressable>
@@ -55,7 +81,7 @@ export function CreateLobbyOverlay({ onCreate, onClose }: CreateLobbyOverlayProp
             {[1, 2, 3].map((n) => (
               <Pressable
                 key={n}
-                onPress={() => setDeckCount(n)}
+                onPress={() => handleDeckChange(n)}
                 style={[styles.sliderItem, deckCount === n && styles.sliderItemActive]}
               >
                 <Text style={[styles.sliderText, deckCount === n && styles.sliderTextActive]}>
@@ -70,7 +96,7 @@ export function CreateLobbyOverlay({ onCreate, onClose }: CreateLobbyOverlayProp
         <View style={styles.setting}>
           <Text style={styles.label}>Jokers</Text>
           <Pressable
-            onPress={() => setIncludeJokers(!includeJokers)}
+            onPress={handleJokersToggle}
             style={[styles.togglePill, includeJokers && styles.togglePillActive]}
           >
             <Text style={[styles.toggleText, includeJokers && styles.toggleTextActive]}>
@@ -165,6 +191,9 @@ const styles = StyleSheet.create({
   sliderItemActive: {
     backgroundColor: colors.buttonPrimary,
   },
+  sliderItemDisabled: {
+    opacity: 0.3,
+  },
   sliderText: {
     color: colors.textSecondary,
     fontSize: 14,
@@ -172,6 +201,9 @@ const styles = StyleSheet.create({
   },
   sliderTextActive: {
     color: colors.textPrimary,
+  },
+  sliderTextDisabled: {
+    color: colors.textSecondary,
   },
   togglePill: {
     alignSelf: 'flex-start',

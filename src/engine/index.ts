@@ -6,3 +6,4 @@ export { drawCards, checkPhaseTransition, advanceTurn, checkWin } from './turnFl
 export { processAction } from './actions';
 export { createGame, createGameWithSeed, autoChooseFaceUp } from './gameState';
 export { decideCpuAction, decideCpuJumpIn } from './cpu';
+export { getMaxPlayerCount } from './configLimits';

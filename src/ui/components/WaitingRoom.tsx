@@ -6,11 +6,13 @@ import { colors } from '../theme/colors';
 interface WaitingRoomProps {
   lobby: LobbyInfo;
   myPlayerId: string | null;
+  isHost?: boolean;
   onReady: (ready: boolean) => void;
   onLeave: () => void;
+  onSwapSeats?: (seatA: number, seatB: number) => void;
 }
 
-export function WaitingRoom({ lobby, myPlayerId, onReady, onLeave }: WaitingRoomProps) {
+export function WaitingRoom({ lobby, myPlayerId, isHost, onReady, onLeave, onSwapSeats }: WaitingRoomProps) {
   const myParticipant = lobby.participants.find((p) => p.playerId === myPlayerId);
   const isReady = myParticipant?.isReady ?? false;
   const allReady = lobby.participants.length >= 2 && lobby.participants.every((p) => p.isReady);
@@ -45,33 +47,62 @@ export function WaitingRoom({ lobby, myPlayerId, onReady, onLeave }: WaitingRoom
         <Text style={styles.sectionLabel}>
           Players ({lobby.participants.length}/{lobby.config.maxPlayers})
         </Text>
-        {lobby.participants.map((p) => (
-          <View key={p.playerId} style={styles.participant}>
-            <View style={styles.participantLeft}>
-              {p.isHost && <Text style={styles.hostBadge}>HOST</Text>}
-              <Text
-                style={[
-                  styles.participantName,
-                  p.playerId === myPlayerId && styles.myName,
-                ]}
-              >
-                {p.displayName}
-                {p.playerId === myPlayerId ? ' (you)' : ''}
-              </Text>
-            </View>
-            <Text style={[styles.readyStatus, p.isReady ? styles.ready : styles.notReady]}>
-              {p.isReady ? 'Ready' : 'Not Ready'}
-            </Text>
-          </View>
-        ))}
-        {/* Empty slots */}
-        {Array.from({ length: lobby.config.maxPlayers - lobby.participants.length }).map(
-          (_, i) => (
-            <View key={`empty-${i}`} style={styles.participant}>
-              <Text style={styles.emptySlot}>-- CPU --</Text>
-            </View>
-          )
-        )}
+        {(() => {
+          // Build unified seat list
+          const participantBySeat = new Map(lobby.participants.map(p => [p.seatIndex, p]));
+          const seats = Array.from({ length: lobby.config.maxPlayers }, (_, i) => ({
+            seatIndex: i,
+            participant: participantBySeat.get(i) ?? null,
+          }));
+
+          return seats.map((seat, idx) => {
+            const p = seat.participant;
+            return (
+              <View key={seat.seatIndex} style={styles.participant}>
+                {/* Reorder arrows for host */}
+                {isHost && onSwapSeats ? (
+                  <View style={styles.arrowColumn}>
+                    <Pressable
+                      onPress={() => idx > 0 ? onSwapSeats(seat.seatIndex, seats[idx - 1]!.seatIndex) : undefined}
+                      disabled={idx === 0}
+                      style={styles.arrowButton}
+                    >
+                      <Text style={[styles.arrowText, idx === 0 && styles.arrowDisabled]}>▲</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => idx < seats.length - 1 ? onSwapSeats(seat.seatIndex, seats[idx + 1]!.seatIndex) : undefined}
+                      disabled={idx === seats.length - 1}
+                      style={styles.arrowButton}
+                    >
+                      <Text style={[styles.arrowText, idx === seats.length - 1 && styles.arrowDisabled]}>▼</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+                {p ? (
+                  <>
+                    <View style={styles.participantLeft}>
+                      {p.isHost && <Text style={styles.hostBadge}>HOST</Text>}
+                      <Text
+                        style={[
+                          styles.participantName,
+                          p.playerId === myPlayerId && styles.myName,
+                        ]}
+                      >
+                        {p.displayName}
+                        {p.playerId === myPlayerId ? ' (you)' : ''}
+                      </Text>
+                    </View>
+                    <Text style={[styles.readyStatus, p.isReady ? styles.ready : styles.notReady]}>
+                      {p.isReady ? 'Ready' : 'Not Ready'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.emptySlot}>-- CPU --</Text>
+                )}
+              </View>
+            );
+          });
+        })()}
       </View>
 
       {/* Status message */}
@@ -194,6 +225,23 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     opacity: 0.5,
     fontStyle: 'italic',
+    flex: 1,
+  },
+  arrowColumn: {
+    justifyContent: 'center',
+    gap: 2,
+    marginRight: 8,
+  },
+  arrowButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  arrowText: {
+    fontSize: 10,
+    color: colors.textPrimary,
+  },
+  arrowDisabled: {
+    opacity: 0.2,
   },
   statusText: {
     fontSize: 14,

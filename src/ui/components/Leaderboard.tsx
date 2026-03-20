@@ -6,32 +6,31 @@ interface LeaderboardProps {
   leaderboard: Record<number, number>;
   playerCount: number;
   seatNames?: string[];
+  winnerId?: number | null;
 }
 
 function getPlayerName(index: number): string {
   return index === 0 ? 'You' : `CPU ${index}`;
 }
 
-export function Leaderboard({ leaderboard, playerCount, seatNames }: LeaderboardProps) {
+export function Leaderboard({ leaderboard, playerCount, seatNames, winnerId }: LeaderboardProps) {
   const rows = Array.from({ length: playerCount }, (_, i) => ({
     index: i,
     name: seatNames?.[i] ?? getPlayerName(i),
     wins: leaderboard[i] ?? 0,
   })).sort((a, b) => b.wins - a.wins);
 
-  const maxWins = rows[0]?.wins ?? 0;
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Leaderboard</Text>
       {rows.map(row => {
-        const isLeader = row.wins > 0 && row.wins === maxWins;
+        const isWinner = winnerId != null && row.index === winnerId;
         return (
           <View key={row.index} style={styles.row}>
-            <Text style={[styles.playerName, isLeader && styles.leaderText]}>
+            <Text style={[styles.playerName, isWinner && styles.leaderText]}>
               {row.name}
             </Text>
-            <Text style={[styles.winCount, isLeader && styles.leaderText]}>
+            <Text style={[styles.winCount, isWinner && styles.leaderText]}>
               {row.wins}
             </Text>
           </View>

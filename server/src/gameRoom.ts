@@ -38,7 +38,10 @@ export class GameRoom {
   private pendingSetupChoices: Map<number, readonly string[]> = new Map();
   private humanSeatsNeedingSetup: Set<number> = new Set();
 
-  constructor(lobby: Lobby, broadcast: BroadcastFn, initialLeaderboard?: Record<number, number>) {
+  private onGameOver?: () => void;
+
+  constructor(lobby: Lobby, broadcast: BroadcastFn, initialLeaderboard?: Record<number, number>, onGameOver?: () => void) {
+    this.onGameOver = onGameOver;
     this.lobbyId = lobby.id;
     this.broadcast = broadcast;
     this.leaderboard = initialLeaderboard ? { ...initialLeaderboard } : {};
@@ -118,6 +121,14 @@ export class GameRoom {
     return this.seats.findIndex((s) => s.playerId === playerId);
   }
 
+  getSeatCount(): number {
+    return this.seats.length;
+  }
+
+  getSeatDisplayName(seatIndex: number): string {
+    return this.seats[seatIndex]?.displayName ?? `CPU ${seatIndex + 1}`;
+  }
+
   isCpuSeat(seatIndex: number): boolean {
     const seat = this.seats[seatIndex];
     return !seat || seat.playerId === null || !seat.connected;
@@ -129,7 +140,8 @@ export class GameRoom {
       seatIndex,
       this.seats.map((s) => s.displayName),
       this.seats.map((s) => s.connected),
-      this.stateVersion
+      this.stateVersion,
+      this.isFinished()
     );
   }
 
@@ -322,6 +334,7 @@ export class GameRoom {
           }
         }
       }
+      this.onGameOver?.();
       return;
     }
 

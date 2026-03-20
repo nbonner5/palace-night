@@ -27,7 +27,7 @@ export function GameOverOverlay({ winnerId, leaderboard, playerCount, seatNames,
           {isHumanWin ? 'You Win!' : `${winnerName} Wins`}
         </Text>
 
-        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} seatNames={seatNames} />
+        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} seatNames={seatNames} winnerId={winnerId} />
 
         <Pressable onPress={onNewGame} style={styles.button}>
           <Text style={styles.buttonText}>New Game</Text>

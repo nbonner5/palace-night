@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { GameState } from '../../types';
+import { GamePhase, GameState } from '../../types';
 import { colors } from '../theme/colors';
 import { CpuPlayerArea } from './CpuPlayerArea';
 import { CenterArea } from './CenterArea';
@@ -47,6 +47,7 @@ export function GameTable({
   onRevealToHand,
   onJumpIn,
 }: GameTableProps) {
+  const gameFinished = game.gamePhase === GamePhase.Finished;
   const cpuPlayers = game.players.slice(1);
   const cpuCount = cpuPlayers.length;
 
@@ -68,6 +69,7 @@ export function GameTable({
               playerIndex={playerIndex}
               isCurrentTurn={game.currentPlayerIndex === playerIndex}
               name={seatNames?.[playerIndex]}
+              gameFinished={gameFinished}
             />
           );
         })}
@@ -85,6 +87,7 @@ export function GameTable({
                 playerIndex={playerIndex}
                 isCurrentTurn={game.currentPlayerIndex === playerIndex}
                 name={seatNames?.[playerIndex]}
+                gameFinished={gameFinished}
               />
             );
           })}
@@ -106,6 +109,7 @@ export function GameTable({
         jumpInCardIds={jumpInCardIds}
         canJumpIn={canJumpIn}
         canRevealFaceDown={canRevealFaceDown}
+        gameFinished={gameFinished}
         onCardPress={onCardPress}
         onDoubleTapCard={onDoubleTapCard}
         onPlay={onPlay}

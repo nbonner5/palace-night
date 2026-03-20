@@ -191,6 +191,30 @@ export function toLobbyInfo(lobby: Lobby): LobbyInfo {
   };
 }
 
+export function swapSeats(lobbyId: string, seatA: number, seatB: number): boolean {
+  const lobby = lobbies.get(lobbyId);
+  if (!lobby) return false;
+  if (seatA === seatB) return true;
+
+  // Find participants at these seat indices
+  let participantA: LobbyParticipant | undefined;
+  let participantB: LobbyParticipant | undefined;
+  for (const p of lobby.participants.values()) {
+    if (p.seatIndex === seatA) participantA = p;
+    if (p.seatIndex === seatB) participantB = p;
+  }
+
+  // Swap the seat indices for whichever participants exist at those seats
+  if (participantA) {
+    lobby.participants.set(participantA.playerId, { ...participantA, seatIndex: seatB });
+  }
+  if (participantB) {
+    lobby.participants.set(participantB.playerId, { ...participantB, seatIndex: seatA });
+  }
+
+  return true;
+}
+
 export function deleteLobby(lobbyId: string): void {
   const lobby = lobbies.get(lobbyId);
   if (lobby) {

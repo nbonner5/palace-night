@@ -4,9 +4,8 @@ import { ClientMessage, ServerMessage } from '../../types/multiplayer';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 
-const DEFAULT_URL = __DEV__
-  ? 'http://localhost:3001'
-  : 'https://palace-night.fly.dev';
+const DEFAULT_URL = process.env.EXPO_PUBLIC_SERVER_URL
+  ?? (__DEV__ ? 'http://localhost:3001' : 'https://palace-night.fly.dev');
 
 export function useSocket(serverUrl?: string) {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');

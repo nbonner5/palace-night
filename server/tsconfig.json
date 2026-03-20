@@ -20,6 +20,5 @@
     "../src/types/**/*",
     "../src/engine/**/*",
     "../src/utils/**/*"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

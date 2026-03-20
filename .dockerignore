@@ -1,0 +1,8 @@
+node_modules
+dist
+web-build
+.expo
+__tests__
+assets
+*.log
+.git

@@ -1,9 +1,6 @@
 app = "palace-night"
 primary_region = "iad"
 
-[build]
-  dockerfile = "Dockerfile"
-
 [env]
   PORT = "3001"
 

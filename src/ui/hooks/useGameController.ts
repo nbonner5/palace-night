@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Card,
   GameConfig,
+  GameEvent,
   GamePhase,
   GameState,
   PlayerPhase,
@@ -26,6 +27,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
   const [gameState, setGameState] = useState<GameState>(() => createGame(config));
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [lastEvents, setLastEvents] = useState<readonly GameEvent[]>([]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const configRef = useRef(config);
   configRef.current = config;
@@ -124,6 +126,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
       const result = processAction(current, action);
       current = result.state;
       updateState(current);
+      setLastEvents(result.events);
 
       // If CPU just revealed a face-down card, immediately decide and play the follow-up
       if (action.type === 'REVEAL_TO_HAND' && current.currentPlayerIndex === cpuIndex) {
@@ -131,6 +134,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
         const followUpResult = processAction(current, followUp);
         current = followUpResult.state;
         updateState(current);
+        setLastEvents(followUpResult.events);
       }
 
       // Auto-reveal face-down cards for all CPUs (ensures they have a card for jump-ins)
@@ -153,6 +157,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
             const jumpResult = processAction(current, jumpAction);
             current = jumpResult.state;
             updateState(current);
+            setLastEvents(jumpResult.events);
             break; // Only one jump-in per play
           }
         }
@@ -179,6 +184,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
             const jumpResult = processAction(current, jumpAction);
             current = jumpResult.state;
             updateState(current);
+            setLastEvents(jumpResult.events);
             break;
           }
         }
@@ -235,6 +241,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
         playerIndex: 0,
         cardIds,
       });
+      setLastEvents(result.events);
       setGameState(result.state);
     } catch (e) {
       console.warn('Invalid play:', e);
@@ -247,6 +254,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
         type: 'PICK_UP_PILE',
         playerIndex: 0,
       });
+      setLastEvents(result.events);
       setGameState(result.state);
     } catch (e) {
       console.warn('Invalid pickup:', e);
@@ -260,6 +268,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
         playerIndex: 0,
         slotIndex,
       });
+      setLastEvents(result.events);
       gameStateRef.current = result.state;
       setGameState(result.state);
     } catch (e) {
@@ -276,6 +285,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
         playerIndex: 0,
         cardIds,
       });
+      setLastEvents(result.events);
       gameStateRef.current = result.state;
       setGameState(result.state);
     } catch (e) {
@@ -310,6 +320,7 @@ export function useGameController(config: GameConfig = DEFAULT_CONFIG) {
     canHumanJumpIn,
     jumpInCardIds,
     isPaused,
+    lastEvents,
     pause,
     resume,
     newGame,

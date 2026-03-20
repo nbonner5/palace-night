@@ -19,6 +19,7 @@ import {
   canStartGame,
   listPublicLobbies,
   toLobbyInfo,
+  swapSeats,
   Lobby,
 } from './lobbyManager';
 import { GameRoom } from './gameRoom';
@@ -128,7 +129,9 @@ function startGame(lobby: Lobby): void {
     }
   };
 
-  const room = new GameRoom(lobby, broadcastFn);
+  const room = new GameRoom(lobby, broadcastFn, undefined, () => {
+    broadcastRematchUpdate(room, lobby, undefined);
+  });
   gameRooms.set(lobby.id, room);
   lobby.gameInProgress = true;
 
@@ -299,6 +302,55 @@ function handleGameAction(socket: Socket, session: PlayerSession, msg: ClientMes
   }
 }
 
+function buildRematchPlayers(
+  room: GameRoom,
+  lobby: Lobby,
+  readySet: Set<string> | undefined
+): import('../../src/types/multiplayer').RematchPlayerInfo[] {
+  const seatCount = room.getSeatCount();
+  const players: import('../../src/types/multiplayer').RematchPlayerInfo[] = [];
+  for (let i = 0; i < seatCount; i++) {
+    // Check if a lobby participant sits here
+    let found = false;
+    for (const p of lobby.participants.values()) {
+      if (p.seatIndex === i) {
+        const s = getSession(p.playerId);
+        players.push({
+          seatIndex: i,
+          displayName: s?.displayName ?? p.displayName,
+          isReady: readySet?.has(p.playerId) ?? false,
+        });
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // CPU seat
+      players.push({
+        seatIndex: i,
+        displayName: `CPU ${i + 1}`,
+        isReady: true, // CPUs are always "ready"
+      });
+    }
+  }
+  return players;
+}
+
+function broadcastRematchUpdate(room: GameRoom, lobby: Lobby, readySet: Set<string> | undefined): void {
+  const rematchPlayers = buildRematchPlayers(room, lobby, readySet);
+  for (const p of lobby.participants.values()) {
+    const s = getSession(p.playerId);
+    if (s?.socketId) {
+      sendToSocket(s.socketId, {
+        type: 'REMATCH_UPDATE',
+        players: rematchPlayers,
+        lobbyCode: lobby.code,
+        yourSeatIndex: p.seatIndex,
+      });
+    }
+  }
+}
+
 function handleSetRematchReady(socket: Socket, session: PlayerSession, msg: ClientMessage & { type: 'SET_REMATCH_READY' }): void {
   if (!session.lobbyId) {
     sendError(socket, 'NOT_IN_LOBBY', 'Not in a lobby');
@@ -326,35 +378,14 @@ function handleSetRematchReady(socket: Socket, session: PlayerSession, msg: Clie
     readySet.delete(session.playerId);
   }
 
-  // Count connected humans in the lobby
+  broadcastRematchUpdate(room, lobby, readySet);
+
+  // Count connected humans for ready check
   const connectedHumans: string[] = [];
   for (const p of lobby.participants.values()) {
     const s = getSession(p.playerId);
     if (s?.socketId) {
       connectedHumans.push(p.playerId);
-    }
-  }
-
-  // Build per-player info for broadcast
-  const rematchPlayers = connectedHumans.map((pid) => {
-    const seatIdx = room.getSeatIndex(pid);
-    const pSession = getSession(pid);
-    return {
-      seatIndex: seatIdx,
-      displayName: pSession?.displayName ?? 'Unknown',
-      isReady: readySet!.has(pid),
-    };
-  });
-
-  for (const pid of connectedHumans) {
-    const s = getSession(pid);
-    if (s?.socketId) {
-      sendToSocket(s.socketId, {
-        type: 'REMATCH_UPDATE',
-        players: rematchPlayers,
-        lobbyCode: lobby.code,
-        yourSeatIndex: room.getSeatIndex(pid),
-      });
     }
   }
 
@@ -379,7 +410,9 @@ function handleSetRematchReady(socket: Socket, session: PlayerSession, msg: Clie
       }
     };
 
-    const newRoom = new GameRoom(lobby, broadcastFn, currentLeaderboard);
+    const newRoom = new GameRoom(lobby, broadcastFn, currentLeaderboard, () => {
+      broadcastRematchUpdate(newRoom, lobby, undefined);
+    });
     gameRooms.set(lobby.id, newRoom);
 
     // Send REMATCH_STARTED to all participants
@@ -397,6 +430,38 @@ function handleSetRematchReady(socket: Socket, session: PlayerSession, msg: Clie
     }
 
     newRoom.start();
+  }
+}
+
+function handleSwapSeats(socket: Socket, session: PlayerSession, msg: ClientMessage & { type: 'SWAP_SEATS' }): void {
+  if (!session.lobbyId) {
+    sendError(socket, 'NOT_IN_LOBBY', 'Not in a lobby');
+    return;
+  }
+
+  const lobby = getLobby(session.lobbyId);
+  if (!lobby) return;
+
+  // Only the host can swap seats
+  if (lobby.hostId !== session.playerId) {
+    sendError(socket, 'INVALID_ACTION', 'Only the host can reorder seats');
+    return;
+  }
+
+  // Block during active (non-finished) game
+  const room = gameRooms.get(session.lobbyId);
+  if (room && !room.isFinished()) {
+    sendError(socket, 'INVALID_ACTION', 'Cannot reorder seats during an active game');
+    return;
+  }
+
+  swapSeats(session.lobbyId, msg.seatA, msg.seatB);
+  broadcastLobbyUpdate(lobby);
+
+  // If post-game, also re-broadcast rematch update with updated seat info
+  if (room && room.isFinished()) {
+    const readySet = rematchReady.get(session.lobbyId);
+    broadcastRematchUpdate(room, lobby, readySet);
   }
 }
 
@@ -433,6 +498,12 @@ function handleReconnect(socket: Socket, msg: ClientMessage & { type: 'RECONNECT
           state: room.getFilteredState(seatIndex),
           events: [],
         });
+
+        // Send rematch UI if game is finished
+        if (room.isFinished()) {
+          const readySet = rematchReady.get(existingSession.lobbyId);
+          broadcastRematchUpdate(room, lobby!, readySet);
+        }
 
         // Notify others
         broadcastToRoom(room, existingSession.lobbyId, {
@@ -527,6 +598,9 @@ io.on('connection', (socket) => {
         break;
       case 'SET_REMATCH_READY':
         handleSetRematchReady(socket, session, msg);
+        break;
+      case 'SWAP_SEATS':
+        handleSwapSeats(socket, session, msg);
         break;
     }
   });

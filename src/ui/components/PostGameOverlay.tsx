@@ -6,6 +6,7 @@ import { Leaderboard } from './Leaderboard';
 interface RematchReadyInfo {
   players: { localIndex: number; displayName: string; isReady: boolean }[];
   lobbyCode: string;
+  yourSeatIndex: number;
 }
 
 interface PostGameOverlayProps {
@@ -14,8 +15,11 @@ interface PostGameOverlayProps {
   playerCount: number;
   seatNames: string[];
   rematchReady: RematchReadyInfo | null;
+  isHost?: boolean;
+  yourSeatIndex?: number;
   onRequestRematch: (ready: boolean) => void;
   onLeave: () => void;
+  onSwapSeats?: (seatA: number, seatB: number) => void;
 }
 
 export function PostGameOverlay({
@@ -24,12 +28,15 @@ export function PostGameOverlay({
   playerCount,
   seatNames,
   rematchReady,
+  isHost,
+  yourSeatIndex = 0,
   onRequestRematch,
   onLeave,
+  onSwapSeats,
 }: PostGameOverlayProps) {
   const isHumanWin = winnerId === 0;
   const winnerName = seatNames[winnerId] ?? (winnerId === 0 ? 'You' : `Player ${winnerId}`);
-  const iAmReady = rematchReady?.players.find((p) => p.localIndex === 0)?.isReady ?? false;
+  const iAmReady = rematchReady?.players.find((p) => p.localIndex === rematchReady.yourSeatIndex)?.isReady ?? false;
 
   const handleCopyCode = useCallback(() => {
     if (Platform.OS === 'web' && rematchReady?.lobbyCode) {
@@ -44,7 +51,7 @@ export function PostGameOverlay({
           {isHumanWin ? 'You Win!' : `${winnerName} Wins`}
         </Text>
 
-        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} seatNames={seatNames} />
+        <Leaderboard leaderboard={leaderboard} playerCount={playerCount} seatNames={seatNames} winnerId={winnerId} />
 
         {/* Lobby code */}
         {rematchReady && (
@@ -60,22 +67,49 @@ export function PostGameOverlay({
         {/* Per-player ready list */}
         {rematchReady && (
           <View style={styles.playerList}>
-            {rematchReady.players.map((p) => (
-              <View key={p.localIndex} style={styles.participant}>
-                <Text
-                  style={[
-                    styles.participantName,
-                    p.localIndex === 0 && styles.myName,
-                  ]}
-                >
-                  {p.displayName}
-                  {p.localIndex === 0 ? ' (you)' : ''}
-                </Text>
-                <Text style={[styles.readyStatus, p.isReady ? styles.ready : styles.notReady]}>
-                  {p.isReady ? 'Ready' : 'Not Ready'}
-                </Text>
-              </View>
-            ))}
+            {rematchReady.players.map((p, idx) => {
+              const toServerSeat = (localIdx: number) => localIdx;
+              return (
+                <View key={idx} style={styles.participant}>
+                  {isHost && onSwapSeats ? (
+                    <View style={styles.arrowColumn}>
+                      <Pressable
+                        onPress={() => idx > 0 ? onSwapSeats(
+                          toServerSeat(rematchReady.players[idx]!.localIndex),
+                          toServerSeat(rematchReady.players[idx - 1]!.localIndex)
+                        ) : undefined}
+                        disabled={idx === 0}
+                        style={styles.arrowButton}
+                      >
+                        <Text style={[styles.arrowText, idx === 0 && styles.arrowDisabled]}>▲</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => idx < rematchReady.players.length - 1 ? onSwapSeats(
+                          toServerSeat(rematchReady.players[idx]!.localIndex),
+                          toServerSeat(rematchReady.players[idx + 1]!.localIndex)
+                        ) : undefined}
+                        disabled={idx === rematchReady.players.length - 1}
+                        style={styles.arrowButton}
+                      >
+                        <Text style={[styles.arrowText, idx === rematchReady.players.length - 1 && styles.arrowDisabled]}>▼</Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.participantName,
+                      p.localIndex === rematchReady.yourSeatIndex && styles.myName,
+                    ]}
+                  >
+                    {p.displayName}
+                    {p.localIndex === rematchReady.yourSeatIndex ? ' (you)' : ''}
+                  </Text>
+                  <Text style={[styles.readyStatus, p.isReady ? styles.ready : styles.notReady]}>
+                    {p.isReady ? 'Ready' : 'Not Ready'}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -163,6 +197,7 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: 15,
     color: colors.textPrimary,
+    flex: 1,
   },
   myName: {
     fontWeight: '700',
@@ -170,6 +205,22 @@ const styles = StyleSheet.create({
   readyStatus: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  arrowColumn: {
+    justifyContent: 'center',
+    gap: 2,
+    marginRight: 8,
+  },
+  arrowButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  arrowText: {
+    fontSize: 10,
+    color: colors.textPrimary,
+  },
+  arrowDisabled: {
+    opacity: 0.2,
   },
   ready: {
     color: '#4CAF50',

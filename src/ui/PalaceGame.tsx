@@ -15,6 +15,7 @@ import { GameTable } from './components/GameTable';
 import { SetupOverlay } from './components/SetupOverlay';
 import { GameOverOverlay } from './components/GameOverOverlay';
 import { BlowupEffect } from './components/BlowupEffect';
+import { GameEventMessage } from './components/GameEventMessage';
 import { HomeScreen } from './components/HomeScreen';
 import { PauseOverlay } from './components/PauseOverlay';
 import { OnlineMenu } from './components/OnlineMenu';
@@ -38,6 +39,7 @@ export function PalaceGame() {
   const { displayName, setDisplayName, isLoaded: nameLoaded } = useDisplayName();
   const mpController = useMultiplayerController({ send: socket.send, onMessage: socket.onMessage });
   const [turnTimer, setTurnTimer] = useState<{ remaining: number; total: number } | null>(null);
+  const [eventMessage, setEventMessage] = useState<string | null>(null);
 
   const { gameState, isProcessing, playableCardIds, playableZone, isHumanTurn, canPickUp, canHumanJumpIn, jumpInCardIds } = controller;
 
@@ -88,6 +90,44 @@ export function PalaceGame() {
     return unsub;
   }, [socket.onMessage]);
 
+  // Build seat name resolver for event messages
+  const getSeatName = useCallback((playerIndex: number, isOnline: boolean) => {
+    if (isOnline) {
+      return mpController.seatNames[playerIndex] ?? `Player ${playerIndex}`;
+    }
+    return playerIndex === 0 ? 'You' : `CPU ${playerIndex}`;
+  }, [mpController.seatNames]);
+
+  // Surface game events as messages (singleplayer)
+  useEffect(() => {
+    if (appScreen !== 'game') return;
+    const events = controller.lastEvents;
+    if (events.length === 0) return;
+    for (const e of events) {
+      if (e.type === 'JUMP_IN') {
+        setEventMessage(`${getSeatName(e.playerIndex, false)} jumped in!`);
+      } else if (e.type === 'BLOWUP') {
+        setEventMessage('Blow up!');
+        setShowBlowup(true);
+      }
+    }
+  }, [controller.lastEvents, appScreen, getSeatName]);
+
+  // Surface game events as messages (multiplayer)
+  useEffect(() => {
+    if (appScreen !== 'online-game') return;
+    const events = mpController.lastEvents;
+    if (events.length === 0) return;
+    for (const e of events) {
+      if (e.type === 'JUMP_IN') {
+        setEventMessage(`${getSeatName(e.playerIndex, true)} jumped in!`);
+      } else if (e.type === 'BLOWUP') {
+        setEventMessage('Blow up!');
+        setShowBlowup(true);
+      }
+    }
+  }, [mpController.lastEvents, appScreen, getSeatName]);
+
   // Check if all selected cards are playable
   const canPlay = useMemo(() => {
     if (selectedIds.size === 0) return false;
@@ -137,7 +177,7 @@ export function PalaceGame() {
     if (!tappedCard) return;
 
     // Jump-in: select all matching jump-in cards and jump in
-    if (canHumanJumpIn) {
+    if (canHumanJumpIn && !isHumanTurn) {
       const matchingIds = humanPlayer.hand
         .filter(c => c.rank === tappedCard.rank && jumpInCardIds.has(c.id))
         .map(c => c.id);
@@ -237,6 +277,15 @@ export function PalaceGame() {
     setAppScreen('home');
   }, [lobby, socket]);
 
+  const handleSwapSeats = useCallback((seatA: number, seatB: number) => {
+    socket.send({ type: 'SWAP_SEATS', seatA, seatB });
+  }, [socket]);
+
+  const isHost = useMemo(() => {
+    if (!lobby.lobby) return false;
+    return lobby.lobby.participants.some(p => p.playerId === socket.playerId && p.isHost);
+  }, [lobby.lobby, socket.playerId]);
+
   // ── Render ──
 
   if (appScreen === 'home') {
@@ -273,8 +322,10 @@ export function PalaceGame() {
         <WaitingRoom
           lobby={lobby.lobby}
           myPlayerId={socket.playerId}
+          isHost={isHost}
           onReady={handleSetReady}
           onLeave={handleLeaveLobby}
+          onSwapSeats={handleSwapSeats}
         />
       </SafeAreaView>
     );
@@ -327,7 +378,7 @@ export function PalaceGame() {
               const human = mpState.players[0]!;
               const tapped = human.hand.find((c) => c.id === cardId);
               if (!tapped) return;
-              if (mp.canHumanJumpIn) {
+              if (mp.canHumanJumpIn && !mp.isHumanTurn) {
                 const ids = human.hand.filter((c) => c.rank === tapped.rank && mp.jumpInCardIds.has(c.id)).map((c) => c.id);
                 if (ids.length > 0) { mp.jumpIn(ids); clear(); return; }
               }
@@ -365,10 +416,19 @@ export function PalaceGame() {
               playerCount={mpState.players.length}
               seatNames={mp.seatNames}
               rematchReady={mp.rematchReady}
+              isHost={isHost}
+              yourSeatIndex={mp.yourSeatIndex}
               onRequestRematch={mp.requestRematch}
               onLeave={handleLeaveOnlineGame}
+              onSwapSeats={handleSwapSeats}
             />
           )}
+
+          {/* Event message */}
+          <GameEventMessage message={eventMessage} onDismiss={() => setEventMessage(null)} />
+
+          {/* Blowup effect */}
+          <BlowupEffect visible={showBlowup} onComplete={() => setShowBlowup(false)} />
         </View>
       </SafeAreaView>
     );
@@ -440,6 +500,9 @@ export function PalaceGame() {
             onExitToHome={handleExitToHome}
           />
         )}
+
+        {/* Event message */}
+        <GameEventMessage message={eventMessage} onDismiss={() => setEventMessage(null)} />
 
         {/* Blowup effect */}
         <BlowupEffect visible={showBlowup} onComplete={() => setShowBlowup(false)} />

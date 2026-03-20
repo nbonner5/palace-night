@@ -11,9 +11,10 @@ interface CpuPlayerAreaProps {
   playerIndex: number;
   isCurrentTurn: boolean;
   name?: string;
+  gameFinished?: boolean;
 }
 
-export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: nameProp }: CpuPlayerAreaProps) {
+export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: nameProp, gameFinished }: CpuPlayerAreaProps) {
   const name = nameProp ?? `CPU ${playerIndex}`;
   const { cpuCardWidth, cpuCardHeight, isNarrow } = useLayout();
   return (
@@ -38,12 +39,15 @@ export function CpuPlayerArea({ player, playerIndex, isCurrentTurn, name: namePr
         </View>
       )}
 
-      {/* Face-down count */}
+      {/* Face-down cards */}
       {player.faceDown.length > 0 && (
         <View style={styles.row}>
-          {player.faceDown.map((card, i) => (
-            <CardView key={card.id} card={null} faceDown size="small" customWidth={cpuCardWidth} customHeight={cpuCardHeight} />
-          ))}
+          {player.faceDown.map((card) => {
+            const hasRealData = gameFinished && !card.id.startsWith('_');
+            return (
+              <CardView key={card.id} card={hasRealData ? card : null} faceDown={!hasRealData} size="small" customWidth={cpuCardWidth} customHeight={cpuCardHeight} />
+            );
+          })}
         </View>
       )}
     </View>

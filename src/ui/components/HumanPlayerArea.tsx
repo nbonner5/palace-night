@@ -17,6 +17,7 @@ interface HumanPlayerAreaProps {
   jumpInCardIds: Set<string>;
   canJumpIn: boolean;
   canRevealFaceDown: boolean;
+  gameFinished?: boolean;
   onCardPress: (cardId: string) => void;
   onDoubleTapCard?: (cardId: string) => void;
   onPlay: () => void;
@@ -36,6 +37,7 @@ export function HumanPlayerArea({
   jumpInCardIds,
   canJumpIn,
   canRevealFaceDown,
+  gameFinished,
   onCardPress,
   onDoubleTapCard,
   onPlay,
@@ -67,6 +69,7 @@ export function HumanPlayerArea({
         faceUp={player.faceUp}
         playerPhase={player.phase}
         canReveal={canRevealFaceDown}
+        gameFinished={gameFinished}
         onSlotPress={onRevealToHand}
       />
 

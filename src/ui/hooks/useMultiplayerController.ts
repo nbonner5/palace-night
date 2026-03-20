@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Card,
+  GameEvent,
   GamePhase,
   GameState,
   PlayerPhase,
@@ -31,7 +32,7 @@ function adaptPlayer(fp: FilteredPlayerState, isSelf: boolean, localId: number):
     id: localId,
     hand: isSelf ? [...fp.hand] : makePlaceholders(fp.handCount, `h${fp.id}`),
     faceUp: [...fp.faceUp],
-    faceDown: makePlaceholders(fp.faceDownCount, `fd${fp.id}`),
+    faceDown: fp.faceDown.length > 0 ? [...fp.faceDown] : makePlaceholders(fp.faceDownCount, `fd${fp.id}`),
     phase: fp.phase,
   };
 }
@@ -86,8 +87,10 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
   const [rematchReady, setRematchReady] = useState<{
     players: { localIndex: number; displayName: string; isReady: boolean }[];
     lobbyCode: string;
+    yourSeatIndex: number;
   } | null>(null);
   const [hasChosenFaceUp, setHasChosenFaceUp] = useState(false);
+  const [lastEvents, setLastEvents] = useState<readonly GameEvent[]>([]);
   const stateVersionRef = useRef(0);
   const filteredStateRef = useRef<FilteredGameState | null>(null);
   // Listen for state updates from server
@@ -108,6 +111,17 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
           filteredStateRef.current = msg.state;
           stateVersionRef.current = msg.state.stateVersion;
           setIsProcessing(false);
+          if (msg.events.length > 0) {
+            const count = msg.state.players.length;
+            const seat = msg.state.yourSeatIndex;
+            const rotateIdx = (idx: number) => ((idx - seat + count) % count);
+            setLastEvents(msg.events.map((e) => {
+              if ('playerIndex' in e) {
+                return { ...e, playerIndex: rotateIdx(e.playerIndex) };
+              }
+              return e;
+            }));
+          }
         }
       }),
       onMessage('GAME_OVER', (msg) => {
@@ -131,15 +145,16 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
       }),
       onMessage('REMATCH_UPDATE', (msg) => {
         if (msg.type === 'REMATCH_UPDATE') {
-          const yourSeat = msg.yourSeatIndex;
-          const count = msg.players.length;
+          const players = msg.players.map((p) => ({
+            localIndex: p.seatIndex,
+            displayName: p.displayName,
+            isReady: p.isReady,
+          }));
+          players.sort((a, b) => a.localIndex - b.localIndex);
           setRematchReady({
-            players: msg.players.map((p) => ({
-              localIndex: ((p.seatIndex - yourSeat + count) % count),
-              displayName: p.displayName,
-              isReady: p.isReady,
-            })),
+            players,
             lobbyCode: msg.lobbyCode,
+            yourSeatIndex: msg.yourSeatIndex,
           });
         }
       }),
@@ -357,9 +372,11 @@ export function useMultiplayerController({ send, onMessage }: UseMultiplayerCont
     pickUpPile,
     revealToHand,
     jumpIn,
+    lastEvents,
     // Multiplayer-specific
     hasChosenFaceUp,
     seatNames: rotatedSeatNames,
+    yourSeatIndex: filteredState?.yourSeatIndex ?? 0,
     seatConnected: filteredState?.seatConnected ?? [],
     leaderboard,
     rematchReady,

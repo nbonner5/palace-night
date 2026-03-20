@@ -49,6 +49,7 @@ export interface FilteredPlayerState {
   readonly hand: readonly Card[]; // full for self, empty for others
   readonly faceUp: readonly Card[]; // visible to all
   readonly faceDownCount: number; // count only (nobody sees values)
+  readonly faceDown: readonly Card[]; // empty during game, populated at game end
   readonly phase: PlayerPhase;
 }
 
@@ -124,6 +125,12 @@ export interface C2S_SetRematchReady {
   readonly ready: boolean;
 }
 
+export interface C2S_SwapSeats {
+  readonly type: 'SWAP_SEATS';
+  readonly seatA: number;
+  readonly seatB: number;
+}
+
 export type ClientMessage =
   | C2S_SetDisplayName
   | C2S_CreateLobby
@@ -134,7 +141,8 @@ export type ClientMessage =
   | C2S_Ping
   | C2S_GameAction
   | C2S_Reconnect
-  | C2S_SetRematchReady;
+  | C2S_SetRematchReady
+  | C2S_SwapSeats;
 
 // ── Server-to-Client Messages ──
 

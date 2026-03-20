@@ -10,25 +10,27 @@ interface HumanTableCardsProps {
   faceUp: readonly Card[];
   playerPhase: PlayerPhase;
   canReveal: boolean;
+  gameFinished?: boolean;
   onSlotPress: (slotIndex: number) => void;
 }
 
 const FACE_DOWN_OFFSET = 10;
 
-export function HumanTableCards({ faceDown, faceUp, playerPhase, canReveal, onSlotPress }: HumanTableCardsProps) {
+export function HumanTableCards({ faceDown, faceUp, playerPhase, canReveal, gameFinished, onSlotPress }: HumanTableCardsProps) {
   if (faceDown.length === 0) return null;
 
   const isFaceDownPhase = playerPhase === PlayerPhase.FaceDown;
 
   return (
     <View style={styles.container}>
-      {faceDown.map((_, index) => {
+      {faceDown.map((fdCard, index) => {
         const faceUpCard = faceUp[index] ?? null;
+        const hasRealData = gameFinished && !fdCard.id.startsWith('_');
 
         return (
           <View key={index} style={styles.stack}>
             {/* Face-down card on bottom, offset down (hidden during face-down phase) */}
-            {!isFaceDownPhase && (
+            {!isFaceDownPhase && !gameFinished && (
               <View style={styles.faceDownLayer}>
                 <View style={[styles.slot]}>
                   <View style={styles.cardBackOuter}>
@@ -45,6 +47,13 @@ export function HumanTableCards({ faceDown, faceUp, playerPhase, canReveal, onSl
               {faceUpCard ? (
                 <CardView
                   card={faceUpCard}
+                  faceDown={false}
+                  disabled={true}
+                  playable={false}
+                />
+              ) : hasRealData ? (
+                <CardView
+                  card={fdCard}
                   faceDown={false}
                   disabled={true}
                   playable={false}

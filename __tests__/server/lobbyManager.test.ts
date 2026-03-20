@@ -8,6 +8,7 @@ import {
   canStartGame,
   listPublicLobbies,
   toLobbyInfo,
+  swapSeats,
   clearAllLobbies,
 } from '../../server/src/lobbyManager';
 
@@ -320,5 +321,43 @@ describe('toLobbyInfo', () => {
     expect(info.participants[0]!.seatIndex).toBe(0);
     expect(info.participants[1]!.seatIndex).toBe(1);
     expect(info.participants[2]!.seatIndex).toBe(2);
+  });
+});
+
+describe('swapSeats', () => {
+  it('swaps two participants\' seat indices', () => {
+    const lobby = createLobby('p1', 'Alice');
+    joinLobby(lobby.id, 'p2', 'Bob');
+    joinLobby(lobby.id, 'p3', 'Charlie');
+
+    const result = swapSeats(lobby.id, 0, 2);
+
+    expect(result).toBe(true);
+    expect(lobby.participants.get('p1')!.seatIndex).toBe(2);
+    expect(lobby.participants.get('p3')!.seatIndex).toBe(0);
+    expect(lobby.participants.get('p2')!.seatIndex).toBe(1); // unchanged
+  });
+
+  it('handles swapping same seat (no-op)', () => {
+    const lobby = createLobby('p1', 'Alice');
+    const result = swapSeats(lobby.id, 0, 0);
+    expect(result).toBe(true);
+    expect(lobby.participants.get('p1')!.seatIndex).toBe(0);
+  });
+
+  it('handles swapping participant with empty CPU seat', () => {
+    const lobby = createLobby('p1', 'Alice', { maxPlayers: 4 });
+    joinLobby(lobby.id, 'p2', 'Bob');
+    // Seats: p1=0, p2=1, empty=2, empty=3
+
+    const result = swapSeats(lobby.id, 0, 3);
+
+    expect(result).toBe(true);
+    expect(lobby.participants.get('p1')!.seatIndex).toBe(3);
+    expect(lobby.participants.get('p2')!.seatIndex).toBe(1);
+  });
+
+  it('returns false for nonexistent lobby', () => {
+    expect(swapSeats('fake', 0, 1)).toBe(false);
   });
 });

@@ -173,4 +173,45 @@ describe('filterStateForPlayer', () => {
 
     expect(filtered.winnerId).toBe(2);
   });
+
+  it('hides face-down cards when gameFinished is false', () => {
+    const state = buildPlayingState({
+      faceDowns: [
+        cards([Rank.Ace, Suit.Spades], [Rank.King, Suit.Hearts]),
+        cards([Rank.Queen, Suit.Diamonds]),
+        [],
+        cards([Rank.Nine, Suit.Spades]),
+      ],
+    });
+
+    const filtered = filterStateForPlayer(state, 0, seatNames, seatConnected, 1, false);
+
+    expect(filtered.players[0]!.faceDown).toHaveLength(0);
+    expect(filtered.players[1]!.faceDown).toHaveLength(0);
+    expect(filtered.players[0]!.faceDownCount).toBe(2);
+    expect(filtered.players[1]!.faceDownCount).toBe(1);
+  });
+
+  it('reveals face-down cards when gameFinished is true', () => {
+    const state = buildPlayingState({
+      faceDowns: [
+        cards([Rank.Ace, Suit.Spades], [Rank.King, Suit.Hearts]),
+        cards([Rank.Queen, Suit.Diamonds]),
+        [],
+        cards([Rank.Nine, Suit.Spades]),
+      ],
+    });
+
+    const filtered = filterStateForPlayer(state, 0, seatNames, seatConnected, 1, true);
+
+    expect(filtered.players[0]!.faceDown).toHaveLength(2);
+    expect(filtered.players[0]!.faceDown[0]!.rank).toBe(Rank.Ace);
+    expect(filtered.players[1]!.faceDown).toHaveLength(1);
+    expect(filtered.players[1]!.faceDown[0]!.rank).toBe(Rank.Queen);
+    expect(filtered.players[2]!.faceDown).toHaveLength(0);
+    expect(filtered.players[3]!.faceDown).toHaveLength(1);
+    // Counts should still be correct
+    expect(filtered.players[0]!.faceDownCount).toBe(2);
+    expect(filtered.players[1]!.faceDownCount).toBe(1);
+  });
 });

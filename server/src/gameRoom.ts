@@ -20,6 +20,7 @@ import { Lobby } from './lobbyManager';
 export interface SeatInfo {
   playerId: string | null; // null = CPU seat
   displayName: string;
+  originalDisplayName: string | null; // saved when human disconnects
   connected: boolean;
 }
 
@@ -56,9 +57,9 @@ export class GameRoom {
     for (let i = 0; i < maxPlayers; i++) {
       const p = participantsBySeat.get(i);
       if (p) {
-        this.seats.push({ playerId: p.playerId, displayName: p.displayName, connected: true });
+        this.seats.push({ playerId: p.playerId, displayName: p.displayName, originalDisplayName: null, connected: true });
       } else {
-        this.seats.push({ playerId: null, displayName: `CPU ${i + 1}`, connected: true });
+        this.seats.push({ playerId: null, displayName: `CPU ${i + 1}`, originalDisplayName: null, connected: true });
       }
     }
 
@@ -238,7 +239,13 @@ export class GameRoom {
   markDisconnected(playerId: string): number {
     const seatIndex = this.getSeatIndex(playerId);
     if (seatIndex !== -1) {
-      this.seats[seatIndex]!.connected = false;
+      const seat = this.seats[seatIndex]!;
+      seat.connected = false;
+      seat.originalDisplayName = seat.displayName;
+      seat.displayName = `CPU ${seatIndex + 1}`;
+
+      // Broadcast updated names to all connected players
+      this.broadcastStateUpdate([]);
 
       // If it was their turn, restart timer (CPU will take over)
       if (this.state.currentPlayerIndex === seatIndex) {
@@ -251,7 +258,12 @@ export class GameRoom {
   markReconnected(playerId: string): number {
     const seatIndex = this.getSeatIndex(playerId);
     if (seatIndex !== -1) {
-      this.seats[seatIndex]!.connected = true;
+      const seat = this.seats[seatIndex]!;
+      seat.connected = true;
+      if (seat.originalDisplayName) {
+        seat.displayName = seat.originalDisplayName;
+        seat.originalDisplayName = null;
+      }
 
       // If it's their turn, restart timer for the human
       if (this.state.currentPlayerIndex === seatIndex) {
@@ -267,7 +279,8 @@ export class GameRoom {
     if (seatIndex !== -1) {
       const seat = this.seats[seatIndex]!;
       seat.playerId = null;
-      seat.displayName = `CPU (${seat.displayName})`;
+      seat.displayName = `CPU ${seatIndex + 1}`;
+      seat.originalDisplayName = null;
       seat.connected = true;
 
       if (this.state.currentPlayerIndex === seatIndex) {

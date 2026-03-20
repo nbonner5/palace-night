@@ -1,25 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from './storage';
 
 const STORAGE_KEY = 'palace_display_name';
-
-// Web fallback for environments without AsyncStorage
-const storage = {
-  getItem: async (key: string): Promise<string | null> => {
-    if (Platform.OS === 'web') {
-      return localStorage.getItem(key);
-    }
-    return AsyncStorage.getItem(key);
-  },
-  setItem: async (key: string, value: string): Promise<void> => {
-    if (Platform.OS === 'web') {
-      localStorage.setItem(key, value);
-      return;
-    }
-    return AsyncStorage.setItem(key, value);
-  },
-};
 
 export function useDisplayName() {
   const [displayName, setDisplayNameState] = useState<string>('');

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GameConfig, GamePhase, PlayerPhase, DEFAULT_CONFIG } from '../types';
+import { GamePhase, PlayerPhase } from '../types';
 import { LobbyConfig } from '../types/multiplayer';
 import { colors } from './theme/colors';
 import { useGameController } from './hooks/useGameController';
@@ -9,6 +9,7 @@ import { useCardSelection } from './hooks/useCardSelection';
 import { useSocket } from './hooks/useSocket';
 import { useLobby } from './hooks/useLobby';
 import { useDisplayName } from './hooks/useDisplayName';
+import { usePersistedConfig } from './hooks/usePersistedConfig';
 import { useMultiplayerController } from './hooks/useMultiplayerController';
 import { TurnTimer as TurnTimerBar } from './components/TurnTimer';
 import { GameTable } from './components/GameTable';
@@ -25,7 +26,7 @@ import { PostGameOverlay } from './components/PostGameOverlay';
 type AppScreen = 'home' | 'game' | 'online-menu' | 'waiting-room' | 'online-game';
 
 export function PalaceGame() {
-  const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
+  const { config, setConfig } = usePersistedConfig();
   const controller = useGameController(config);
   const { selectedIds, toggle, clear } = useCardSelection();
   const [showBlowup, setShowBlowup] = useState(false);

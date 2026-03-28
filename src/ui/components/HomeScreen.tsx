@@ -10,6 +10,7 @@ interface HomeScreenProps {
   config: GameConfig
   onConfigChange: (config: GameConfig) => void
   onNewGame: () => void
+  onPlayTutorial?: () => void
   onPlayOnline?: () => void
 }
 
@@ -17,6 +18,7 @@ export function HomeScreen({
   config,
   onConfigChange,
   onNewGame,
+  onPlayTutorial,
   onPlayOnline,
 }: HomeScreenProps) {
   const [showSettings, setShowSettings] = useState(false)
@@ -43,6 +45,11 @@ export function HomeScreen({
         {onPlayOnline && (
           <Pressable onPress={onPlayOnline} style={styles.onlineButton}>
             <Text style={styles.buttonText}>Play Online</Text>
+          </Pressable>
+        )}
+        {onPlayTutorial && (
+          <Pressable onPress={onPlayTutorial} style={styles.tutorialButton}>
+            <Text style={styles.buttonText}>Play Tutorial</Text>
           </Pressable>
         )}
       </View>
@@ -106,12 +113,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 10,
     marginTop: 20,
+    minWidth: 220,
+    alignItems: 'center' as const,
+  },
+  tutorialButton: {
+    backgroundColor: '#5B4A9E',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    minWidth: 220,
+    alignItems: 'center' as const,
   },
   onlineButton: {
     backgroundColor: colors.buttonJumpIn,
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 10,
+    minWidth: 220,
+    alignItems: 'center' as const,
   },
   buttonText: {
     color: colors.textPrimary,

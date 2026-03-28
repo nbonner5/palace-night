@@ -22,8 +22,9 @@ import { PauseOverlay } from './components/PauseOverlay';
 import { OnlineMenu } from './components/OnlineMenu';
 import { WaitingRoom } from './components/WaitingRoom';
 import { PostGameOverlay } from './components/PostGameOverlay';
+import { TutorialScreen } from './components/TutorialScreen';
 
-type AppScreen = 'home' | 'game' | 'online-menu' | 'waiting-room' | 'online-game';
+type AppScreen = 'home' | 'game' | 'tutorial' | 'online-menu' | 'waiting-room' | 'online-game';
 
 export function PalaceGame() {
   const { config, setConfig } = usePersistedConfig();
@@ -295,9 +296,14 @@ export function PalaceGame() {
         config={config}
         onConfigChange={setConfig}
         onNewGame={handleStartGame}
+        onPlayTutorial={() => setAppScreen('tutorial')}
         onPlayOnline={handlePlayOnline}
       />
     );
+  }
+
+  if (appScreen === 'tutorial') {
+    return <TutorialScreen onBack={() => setAppScreen('home')} />;
   }
 
   if (appScreen === 'online-menu') {

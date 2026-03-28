@@ -112,7 +112,7 @@ export function HumanPlayerArea({
 const styles = StyleSheet.create({
   container: {
     gap: 4,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   phaseLabel: {
     color: colors.turnGold,

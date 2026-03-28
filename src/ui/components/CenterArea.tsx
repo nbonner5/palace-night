@@ -33,8 +33,8 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 8,
+    gap: 6,
+    paddingVertical: 4,
   },
   piles: {
     flexDirection: 'row',

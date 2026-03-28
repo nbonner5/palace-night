@@ -94,8 +94,10 @@ export function GameTable({
         </View>
       )}
 
-      {/* Center area */}
-      <CenterArea game={game} isProcessing={isProcessing} seatNames={seatNames} />
+      {/* Center area — flex to absorb remaining vertical space */}
+      <View style={styles.centerWrapper}>
+        <CenterArea game={game} isProcessing={isProcessing} seatNames={seatNames} />
+      </View>
 
       {/* Human player */}
       <HumanPlayerArea
@@ -125,12 +127,16 @@ const styles = StyleSheet.create({
   table: {
     flex: 1,
     backgroundColor: colors.tableGreen,
-    justifyContent: 'space-between',
+  },
+  centerWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   cpuRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: 8,
+    paddingTop: 4,
     paddingHorizontal: 4,
   },
 });
